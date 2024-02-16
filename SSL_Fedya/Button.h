@@ -1,10 +1,8 @@
-#ifndef BUTTON_H
-#define BUTTON_H
+#pragma once
 
-#include <Arduino.h>
-
-#include "Updatable.h"
+#include "Arduino.h"
 #include "Errors.h"
+#include "Updatable.h"
 
 
 #define TIMEOUT_MS 10
@@ -68,5 +66,3 @@ bool Button::isReleased(){
     checked = true;
     return released;
 }
-
-#endif

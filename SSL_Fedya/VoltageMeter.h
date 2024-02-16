@@ -1,10 +1,9 @@
-#ifndef VOLTAGE_METER_H
-#define VOLTAGE_METER_H
+#pragma once
 
-#include <Arduino.h>
-
-#include "Updatable.h"
+#include "Arduino.h"
 #include "Errors.h"
+#include "Updatable.h"
+
 
 uint8_t calcLinearPercentage(float v, float min, float max){
         return constrain((v - min) * 100 / (max - min), 0, 100);
@@ -46,5 +45,3 @@ class VoltageMeter : public Updatable{
         return percentage;
     }
 };
-
-#endif

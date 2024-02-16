@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Arduino.h"
-
-#include "Updatable.h"
 #include "Errors.h"
+#include "Updatable.h"
+
 
 class Motor : public Updatable{
     public:
@@ -128,5 +128,4 @@ void Motor::interruptHandler(){
         if(b == 1) counter--;
         else counter++;
     }
-
 }

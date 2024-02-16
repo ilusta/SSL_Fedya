@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Arduino.h"
-
-#include "Updatable.h"
 #include "Errors.h"
+#include "Updatable.h"
+
 
 #define segmentN    8
 //Segments location:

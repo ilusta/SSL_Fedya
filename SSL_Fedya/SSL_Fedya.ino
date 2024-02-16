@@ -1,11 +1,11 @@
 #include "Arduino.h"
-#include "ConnectionList.h"
-#include "Button.h"
 #include "BallSensor.h"
-#include "Indicator.h"
-#include "VoltageMeter.h"
-#include "Motor.h"
+#include "Button.h"
+#include "ConnectionList.h"
 #include "EEPROM.h"
+#include "Indicator.h"
+#include "Motor.h"
+#include "VoltageMeter.h"
 
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -146,6 +146,7 @@ void loop(){
 }
 
 
+//Update all perripheral during given time
 void update(uint32_t time){
     uint32_t timer = millis();
     error = NO_ERRORS;
@@ -166,7 +167,6 @@ void update(uint32_t time){
         }
 
     } while(millis() - timer < time);
-
 }
 
 
