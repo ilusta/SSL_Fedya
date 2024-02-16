@@ -10,6 +10,7 @@ class Motor : public Updatable{
     Motor(int, int, int, int, double, int, double, double, double, double);
     void usePID(bool);
     void setSpeed(double speed);
+    void zeroRotations();
     double getRotations();
     double getSpeed();
     uint16_t update() override;
@@ -61,6 +62,8 @@ void Motor::usePID(bool enablePID){
 
 void Motor::setSpeed(double speed){
     goalSpeed = speed;
+    if(goalSpeed > maxSpeed) goalSpeed = maxSpeed;
+    if(goalSpeed < -maxSpeed) goalSpeed = -maxSpeed;
 }
 
 uint16_t Motor::update(){
@@ -105,6 +108,10 @@ void Motor::applySpeed(double speed){
         analogWrite(in1, 255 + pwm);
         analogWrite(in2, 255);
     }
+}
+
+void Motor::zeroRotations(){
+    rotations = 0.0;
 }
 
 double Motor::getRotations(){
