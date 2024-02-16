@@ -54,6 +54,7 @@ uint32_t lowBatteryTimer = 0;
 
 
 void setup(){
+    //Encoder interrupts handlers
     attachInterrupt(MOTOR1_ENCA, [](){motor1.interruptHandler();}, CHANGE);
     attachInterrupt(MOTOR2_ENCA, [](){motor2.interruptHandler();}, CHANGE);
     attachInterrupt(MOTOR3_ENCA, [](){motor3.interruptHandler();}, CHANGE);
@@ -89,15 +90,18 @@ void setup(){
     indicator.update();
     delay(500);
 
+    //Retrieve channel number from EEPROM
     channel = EEPROM.read(0);
     if(channel > 9) channel = 0;
 
+    //Check if initialization was complited successfully
     if(error = NO_ERRORS) initComplete = true;
     else initComplete = false;
 }
 
 
 void loop(){
+    //Update all perripheral
     update(1);
 
     //Update NRF channel number
