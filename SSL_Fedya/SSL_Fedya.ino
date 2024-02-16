@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "ConnectionList.h"
 #include "Button.h"
+#include "BallSensor.h"
 #include "Indicator.h"
 #include "VoltageMeter.h"
 #include "Motor.h"
@@ -18,13 +19,16 @@
 #define MOTORS_PID_KI                           0.0
 #define MOTORS_PID_MAX_INTEGRATED_ERROR         0.0
 
+#define BALL_SENSOR_THRESHOLD                   500     //from 0 to 1024
+
 
 //Peripheral
-#define perihN 8
+#define perihN 9
 Button buttonChannelPlus = Button(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus = Button(BUTTON_CHANEL_MINUS);
 Button buttonEnter = Button(BUTTON_ENTER);
 VoltageMeter batteryVoltage = VoltageMeter(BATTERY_VOLTAGE, 5*2.5/1024.0, BATTERY_CRITICAL_VOLTAGE, 12.4);
+BallSensor ballSensor = BallSensor(BALL_SENSOR, BALL_SENSOR_THRESHOLD);
 Indicator indicator = Indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR_D, INDICATOR_E, INDICATOR_F, INDICATOR_G, INDICATOR_DOT);
 Motor motor1 = Motor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_ENCA, MOTOR1_ENCB, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor2 = Motor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_ENCA, MOTOR2_ENCB, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
@@ -37,6 +41,7 @@ Updatable* peripheral[perihN] ={
     &buttonChannelMinus,
     &buttonEnter,
     &batteryVoltage,
+    &ballSensor,
     &motor1,
     &motor2,
     &motor3,
@@ -103,6 +108,9 @@ void setup(){
 void loop(){
     //Update all perripheral
     update(1);
+
+    //Show ballSensor status on blue LED
+    digitalWrite(LED_BLUE, ballSensor.getValue());
 
     //Update NRF channel number
     if(buttonChannelPlus.isReleased() && channel < 9){
