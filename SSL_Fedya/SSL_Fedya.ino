@@ -20,7 +20,6 @@
 
 //Peripheral
 #define perihN 8
-
 Button buttonChannelPlus = Button(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus = Button(BUTTON_CHANEL_MINUS);
 Button buttonEnter = Button(BUTTON_ENTER);
@@ -107,8 +106,14 @@ void loop(){
     if(batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE) lowBatteryTimer = millis();
     if(millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME){                         //Move disabled if battery was criticaly low for some time
 
-        //Move
-
+        //motor1.setSpeed(0);
+        //motor2.setSpeed(0);
+        //motor3.setSpeed(0);
+    }
+    else{
+        motor1.setSpeed(0);
+        motor2.setSpeed(0);
+        motor3.setSpeed(0);
     }
 }
 
