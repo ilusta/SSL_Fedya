@@ -4,6 +4,7 @@
 #include "Indicator.h"
 #include "VoltageMeter.h"
 #include "Motor.h"
+#include "EEPROM.h"
 
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -88,6 +89,9 @@ void setup(){
     indicator.update();
     delay(500);
 
+    channel = EEPROM.read(0);
+    if(channel > 9) channel = 0;
+
     if(error = NO_ERRORS) initComplete = true;
     else initComplete = false;
 }
@@ -97,8 +101,14 @@ void loop(){
     update(1);
 
     //Update NRF channel number
-    if(buttonChannelPlus.isReleased() && channel < 9) channel++;
-    if(buttonChannelMinus.isReleased() && channel > 0) channel--;
+    if(buttonChannelPlus.isReleased() && channel < 9){
+        channel++;
+        EEPROM.write(0, channel);
+    }
+    if(buttonChannelMinus.isReleased() && channel > 0){
+        channel--;
+        EEPROM.write(0, channel);
+    }
     indicator.print(channel);
 
     //Check battery voltage
