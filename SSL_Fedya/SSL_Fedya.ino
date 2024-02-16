@@ -21,6 +21,8 @@
 
 #define BALL_SENSOR_THRESHOLD                   500     //from 0 to 1024
 
+#define KICK_TIME                               20      //Milliseconds
+
 
 //Peripheral
 #define perihN 9
@@ -59,6 +61,10 @@ uint32_t lowBatteryTimer = 0;
 
 
 void setup(){
+    //Kicker pin initialization
+    pinMode(KICKER, OUTPUT);
+    digitalWrite(KICKER, LOW);
+
     //Encoder interrupts handlers
     attachInterrupt(MOTOR1_ENCA, [](){motor1.interruptHandler();}, CHANGE);
     attachInterrupt(MOTOR2_ENCA, [](){motor2.interruptHandler();}, CHANGE);
@@ -161,4 +167,12 @@ void update(uint32_t time){
 
     } while(millis() - timer < time);
 
+}
+
+
+//Kicker handling
+void kick(){
+    digitalWrite(KICKER, HIGH);
+    delay(KICK_TIME);
+    digitalWrite(KICKER, LOW);
 }
