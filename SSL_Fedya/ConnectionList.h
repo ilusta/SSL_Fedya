@@ -28,20 +28,26 @@
 //------------------------MOTORS---------------------------
 #define DRIBBLER            13
 
-#define MOTOR1_IN1          4
-#define MOTOR1_IN2          5
-#define MOTOR1_ENCA         0       //Interrupt channel, not pin number
-#define MOTOR1_ENCB         1       //Interrupt channel, not pin number
+#define MOTOR1_IN1          5
+#define MOTOR1_IN2          4
+#define MOTOR1_ENCA_PIN     2
+#define MOTOR1_ENCA_CH      0
+#define MOTOR1_ENCB_PIN     3
+#define MOTOR1_ENCB_CH      1
 
-#define MOTOR2_IN1          6
-#define MOTOR2_IN2          7
-#define MOTOR2_ENCA         5       //Interrupt channel, not pin number
-#define MOTOR2_ENCB         4       //Interrupt channel, not pin number
+#define MOTOR2_IN1          7
+#define MOTOR2_IN2          6
+#define MOTOR2_ENCA_PIN     18
+#define MOTOR2_ENCA_CH      5
+#define MOTOR2_ENCB_PIN     19
+#define MOTOR2_ENCB_CH      4
 
 #define MOTOR3_IN1          8
 #define MOTOR3_IN2          9
-#define MOTOR3_ENCA         3       //Interrupt channel, not pin number
-#define MOTOR3_ENCB         2       //Interrupt channel, not pin number
+#define MOTOR3_ENCA_PIN     20
+#define MOTOR3_ENCA_CH      3
+#define MOTOR3_ENCB_PIN     21
+#define MOTOR3_ENCB_CH      2
 
 
 //------------------------KICKER---------------------------

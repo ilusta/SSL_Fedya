@@ -33,7 +33,7 @@ class Indicator : public Updatable{
     private:
     int pins[8] = {0};
     bool state[8] = {0};
-    uint8_t digits[10] = {0x00, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};     //Digits coded in hex for indicator. Bit 0 - segment A, bit 1 - segment B e.t.c
+    uint8_t digits[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};     //Digits coded in hex for indicator. Bit 0 - segment A, bit 1 - segment B e.t.c
 };
 
 

@@ -32,7 +32,7 @@ Button::Button(int pin){
 }
 
 uint16_t Button::update(){
-    bool state = analogRead(pin) > 20;
+    bool state = digitalRead(pin);
 
     if(checked){
         clicked = false;
