@@ -21,7 +21,8 @@
 
 #define BALL_SENSOR_THRESHOLD                   500     //from 0 to 1024
 
-#define KICK_TIME                               20      //Milliseconds
+#define KICK_TIME                               20      //Miliseconds
+#define KICK_TIMEOUT                            1000    //Miliseconds
 
 
 //Peripheral
@@ -58,6 +59,7 @@ bool initComplete = false;
 uint8_t channel = 0;
 
 uint32_t lowBatteryTimer = 0;
+uint32_t kickTimer = 0;
 
 
 void setup(){
@@ -78,10 +80,10 @@ void setup(){
     attachInterrupt(MOTOR1_ENCA_CH, [](){motor1.interruptHandler();}, RISING);
     attachInterrupt(MOTOR2_ENCA_CH, [](){motor2.interruptHandler();}, RISING);
     attachInterrupt(MOTOR3_ENCA_CH, [](){motor3.interruptHandler();}, RISING);
-
-    motor1.usePID(1);
-    motor2.usePID(1);
-    motor3.usePID(1);
+    //Enable PID speed control for all motors
+    motor1.usePID(true);
+    motor2.usePID(true);
+    motor3.usePID(true);
 
     //Retrieve channel number from EEPROM
     channel = EEPROM.read(0);
@@ -129,6 +131,9 @@ void loop(){
     if(batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE) lowBatteryTimer = millis();
     if(millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME){                         //Move disabled if battery was criticaly low for some time
 
+        //Kick from enter button
+        if(buttonEnter.isReleased()) kick();
+
         motor1.setSpeed(1.0);
         motor2.setSpeed(0.0);
         motor3.setSpeed(-1.0);
@@ -172,7 +177,10 @@ void update(uint32_t time){
 
 //Kicker handling
 void kick(){
-    digitalWrite(KICKER, HIGH);
-    delay(KICK_TIME);
-    digitalWrite(KICKER, LOW);
+    if(millis() - kickTimer > KICK_TIMEOUT){
+        digitalWrite(KICKER, HIGH);
+        delay(KICK_TIME);
+        digitalWrite(KICKER, LOW);
+        kickTimer = millis();
+    }
 }
