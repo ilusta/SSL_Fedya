@@ -15,14 +15,14 @@
 #define MOTORS_MAX_SPEED                        6.0     //Rotations/second
 #define MOTORS_PPR                              495     //Encoder pulses per rotation
 #define MOTORS_PID_KP                           4.0
-#define MOTORS_PID_KD                           0.03
+#define MOTORS_PID_KD                           0.05
 #define MOTORS_PID_KI                           100.0
 #define MOTORS_PID_MAX_INTEGRATED_ERROR         10.0
 
 #define BALL_SENSOR_THRESHOLD                   500     //from 0 to 1024
 
-#define KICK_TIME                               20      //Miliseconds
-#define KICK_TIMEOUT                            1000    //Miliseconds
+#define KICK_TIME                               10      //Miliseconds
+#define KICK_TIMEOUT                            500    //Miliseconds
 
 
 //Peripheral
@@ -134,9 +134,9 @@ void loop(){
         //Kick from enter button
         if(buttonEnter.isReleased()) kick();
 
-        motor1.setSpeed(1.0);
+        motor1.setSpeed(0.0);
         motor2.setSpeed(0.0);
-        motor3.setSpeed(-1.0);
+        motor3.setSpeed(0.0);
     }
     else{
         motor1.applySpeed(0);
@@ -145,7 +145,7 @@ void loop(){
     }
 
     Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-     + "channel: " + String(channel) + "; ");// + String(motor3.getSpeed()) + " " + String(-5.0));
+     + "channel: " + String(channel) + "; " + String(motor3.getSpeed()) + " " + String(-0.5));
 }
 
 

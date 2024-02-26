@@ -88,7 +88,11 @@ uint16_t Motor::update(){
         if(integratedError < -maxIntegratedError) integratedError = -maxIntegratedError;
         u = error*kP + (error - oldError)*kD/dTime + integratedError;
         oldError = error;
+
+        if(u < 0.1 && u > -0.1) u = 0.0;
     }
+
+
 
     applySpeed(goalSpeed + u);
 
