@@ -6,6 +6,10 @@
 #include "Indicator.h"
 #include "Motor.h"
 #include "VoltageMeter.h"
+#include <SPI.h>
+#include "RF24.h"
+#include "NRF24.h"
+
 
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -25,8 +29,10 @@
 #define KICK_TIMEOUT                            1000    //Miliseconds
 
 
+RF24 rad(10, 11);
+
 //Peripheral
-#define perihN 9
+#define perihN 10
 Button buttonChannelPlus = Button(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus = Button(BUTTON_CHANEL_MINUS);
 Button buttonEnter = Button(BUTTON_ENTER);
@@ -36,7 +42,7 @@ Indicator indicator = Indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR
 Motor motor1 = Motor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor2 = Motor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor3 = Motor(MOTOR3_IN1, MOTOR3_IN2, MOTOR3_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
-//NRF
+NRF24 nrf = NRF24();//NRF
 //IMU
 
 Updatable* peripheral[perihN] ={
@@ -48,7 +54,7 @@ Updatable* peripheral[perihN] ={
     &motor1,
     &motor2,
     &motor3,
-    //&nrf,
+    &nrf,
     //&imu,
     &indicator
 };
@@ -72,6 +78,9 @@ void setup(){
     indicator.update();
     delay(100);
 
+
+//    rad.begin();
+    nrf.init();
     //Serial for debug
     Serial.begin(115200);
     Serial.println("Initialization...");
@@ -109,6 +118,18 @@ void setup(){
 void loop(){
     //Update all perripheral
     update(1);
+    Serial.print("op_addr: ");
+    Serial.print(nrf.getData().op_addr);
+    Serial.print(" speed_x: ");
+    Serial.print(nrf.getData().speed_x);
+    Serial.print(" speed_y: ");
+    Serial.print(nrf.getData().speed_y);
+    Serial.print(" speed_w: ");
+    Serial.print(nrf.getData().speed_w);
+    Serial.print(" voltage: ");
+    Serial.print(nrf.getData().voltage);
+    Serial.print(" flags: ");
+    Serial.println(nrf.getData().flags); 
 
     //Show ballSensor status on blue LED
     digitalWrite(LED_BLUE, ballSensor.getValue());
