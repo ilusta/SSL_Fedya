@@ -30,7 +30,7 @@
 #define KICK_TIMEOUT                            1000    //Miliseconds
 
 
-RF24 rad(10, 11);
+//RF24 rad(10, 11);
 
 //Peripheral
 #define perihN 10
@@ -43,7 +43,7 @@ Indicator indicator = Indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR
 Motor motor1 = Motor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor2 = Motor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor3 = Motor(MOTOR3_IN1, MOTOR3_IN2, MOTOR3_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
-NRF24 nrf = NRF24();//NRF
+NRF24 nrf = NRF24(10, 11);//NRF
 //IMU
 
 Updatable* peripheral[perihN] ={
@@ -88,8 +88,6 @@ void setup(){
     indicator.update();
     delay(100);
 
-
-//    rad.begin();
     nrf.init();
     //Serial for debug
     Serial.begin(115200);

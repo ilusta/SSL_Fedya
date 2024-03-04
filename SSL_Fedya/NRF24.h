@@ -1,17 +1,13 @@
 #pragma once
 
-//#include <nRF24L01.h>
-//#include <printf.h>
 #include <SPI.h>
 #include "RF24.h"
-//#include <RF24_config.h>
 
 
 #include "Arduino.h"
 #include "Errors.h"
 #include "Updatable.h"
-RF24 radio(10,11);
-int      myData[5];
+
 struct data {
   uint8_t op_addr;
   uint8_t speed_x;
@@ -23,29 +19,24 @@ struct data {
 
 class NRF24: public Updatable{
     private:
-      
+        RF24 rad;
         data dataPackage;
     public:
-        NRF24(){
-//            radio(pinA, pinB);
-//            this->radio = radio;
-        }
+        
+        NRF24(uint8_t ce, uint8_t csn):rad(ce, csn){}
 
         void init(){
-            radio.begin();                          
-//            radio.setChannel(1);
-//            radio.setPALevel(RF24_PA_MAX);
-//            radio.setDataRate(RF24_1MBPS);
-              radio.setChannel      (27);                                // Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
-              radio.setDataRate     (RF24_1MBPS);                        // Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
-              radio.setPALevel      (RF24_PA_MAX);
-            radio.openReadingPipe (0, 0xAABBCCDD11LL);  
-            radio.startListening();
+            rad.begin();                          
+            rad.setChannel      (27);                                // Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
+            rad.setDataRate     (RF24_1MBPS);                        // Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
+            rad.setPALevel      (RF24_PA_MAX);
+            rad.openReadingPipe (0, 0xAABBCCDD11LL);  
+            rad.startListening();
         }
         uint16_t update() override{
             Serial.println("data");
-            if(radio.available()){                                     
-                radio.read(&dataPackage,  sizeof(dataPackage)); 
+            if(this->rad.available()){                                     
+                rad.read(&dataPackage,  sizeof(dataPackage)); 
             }    
 
             return NO_ERRORS;
