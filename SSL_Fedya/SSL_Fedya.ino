@@ -9,6 +9,7 @@
 #include <SPI.h>
 #include "RF24.h"
 #include "NRF24.h"
+//#include <math.h>
 
 
 
@@ -58,6 +59,15 @@ Updatable* peripheral[perihN] ={
     //&imu,
     &indicator
 };
+
+//struct data {
+//  uint8_t op_addr;
+//  uint8_t speed_x;
+//  uint8_t speed_y;
+//  uint8_t speed_w;
+//  uint8_t voltage;
+//  uint8_t flags;
+//};
 
 uint32_t error = NO_ERRORS;
 bool initComplete = false;
@@ -118,18 +128,19 @@ void setup(){
 void loop(){
     //Update all perripheral
     update(1);
-    Serial.print("op_addr: ");
-    Serial.print(nrf.getData().op_addr);
-    Serial.print(" speed_x: ");
-    Serial.print(nrf.getData().speed_x);
-    Serial.print(" speed_y: ");
-    Serial.print(nrf.getData().speed_y);
-    Serial.print(" speed_w: ");
-    Serial.print(nrf.getData().speed_w);
-    Serial.print(" voltage: ");
-    Serial.print(nrf.getData().voltage);
-    Serial.print(" flags: ");
-    Serial.println(nrf.getData().flags); 
+    data control_data = nrf.getData();
+//    Serial.print("op_addr: ");
+//    Serial.print(nrf.getData().op_addr);
+//    Serial.print(" speed_x: ");
+//    Serial.print(nrf.getData().speed_x);
+//    Serial.print(" speed_y: ");
+//    Serial.print(nrf.getData().speed_y);
+//    Serial.print(" speed_w: ");
+//    Serial.print(nrf.getData().speed_w);
+//    Serial.print(" voltage: ");
+//    Serial.print(nrf.getData().voltage);
+//    Serial.print(" flags: ");
+//    Serial.println(nrf.getData().flags); 
 
     //Show ballSensor status on blue LED
     digitalWrite(LED_BLUE, ballSensor.getValue());
@@ -154,10 +165,10 @@ void loop(){
 
         //Kick from enter button
         if(buttonEnter.isReleased()) kick();
-        alpha = nrf.getData().speed_x / nrf.getData().speed_y;
-        speed1 = sin(alpha - 60) * MAX_SPEED;
-        speed1 = sin(alpha - 180) * MAX_SPEED;
-        speed1 = sin(alpha + 60) * MAX_SPEED;
+        double alpha = atan2(control_data.speed_x, control_data.speed_y);
+        double speed1 = sin(alpha - 2/3*M_PI) * MOTORS_MAX_SPEED;
+        double speed2 = sin(alpha - M_PI) * MOTORS_MAX_SPEED;
+        double speed3 = sin(alpha + 2/3*M_PI) * MOTORS_MAX_SPEED;
         motor1.setSpeed(1.0);
         motor2.setSpeed(0.0);
         motor3.setSpeed(-1.0);
