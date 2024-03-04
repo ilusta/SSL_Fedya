@@ -154,7 +154,10 @@ void loop(){
 
         //Kick from enter button
         if(buttonEnter.isReleased()) kick();
-
+        alpha = nrf.getData().speed_x / nrf.getData().speed_y;
+        speed1 = sin(alpha - 60) * MAX_SPEED;
+        speed1 = sin(alpha - 180) * MAX_SPEED;
+        speed1 = sin(alpha + 60) * MAX_SPEED;
         motor1.setSpeed(1.0);
         motor2.setSpeed(0.0);
         motor3.setSpeed(-1.0);
