@@ -28,8 +28,8 @@
 //------------------------MOTORS---------------------------
 #define DRIBBLER            13
 
-#define MOTOR1_IN1          4
-#define MOTOR1_IN2          5
+#define MOTOR1_IN1          5
+#define MOTOR1_IN2          4
 #define MOTOR1_ENCA_PIN     2
 #define MOTOR1_ENCA_CH      0
 #define MOTOR1_ENCB_PIN     3
