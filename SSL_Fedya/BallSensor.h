@@ -27,7 +27,7 @@ class BallSensor : public Updatable{
         return value;
     }
 
-    bool getAnalogValue(){
+    uint16_t getAnalogValue(){
         return analogValue;
     }
 

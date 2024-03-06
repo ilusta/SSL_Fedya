@@ -19,10 +19,10 @@
 #define MOTORS_PID_KI                           100.0
 #define MOTORS_PID_MAX_INTEGRATED_ERROR         10.0
 
-#define BALL_SENSOR_THRESHOLD                   500     //from 0 to 1024
+#define BALL_SENSOR_THRESHOLD                   150     //from 0 to 1024
 
 #define KICK_TIME                               10      //Miliseconds
-#define KICK_TIMEOUT                            500    //Miliseconds
+#define KICK_TIMEOUT                            500     //Miliseconds
 
 
 //Peripheral
@@ -145,7 +145,7 @@ void loop(){
     }
 
     Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-     + "channel: " + String(channel) + "; " + String(motor3.getSpeed()) + " " + String(-0.5));
+     + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getAnalogValue()));
 }
 
 
