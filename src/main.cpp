@@ -61,6 +61,9 @@ uint8_t channel = 0;
 uint32_t lowBatteryTimer = 0;
 uint32_t kickTimer = 0;
 
+void update(uint32_t time);
+void kick();
+
 
 void setup(){
     //Kicker pin initialization
