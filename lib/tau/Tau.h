@@ -12,11 +12,64 @@ public:
     TauBase(float Ts);
     virtual void reset();
     virtual float tick(float in) = 0;
+    virtual float tick(float in, float in2) { return tick(in); }
     float get_val();
 
 protected:
     float Ts;
     float out;
+};
+
+class Gain : public TauBase {
+public:
+    Gain(float gain) : TauBase(0) { this->gain = gain; }
+    float tick(float in) { return out = in*gain; }
+
+protected:
+    float gain;
+};
+
+/**
+ * @brief Сумматор со сложением
+*/
+class Sum : public TauBase {
+public:
+    Sum() : TauBase(0) {}
+    float tick(float in) { return 0; }
+    float tick(float in, float in2) { return out = in + in2; }
+};
+
+/**
+ * @brief Сумматор с вычитанием
+*/
+class Sub : public TauBase {
+public:
+    Sub() : TauBase(0) {}
+    float tick(float in) { return 0; }
+    float tick(float in, float in2) { return out = in - in2; }
+};
+
+/**
+ * @brief Класс, позволяющий легко соединять цепочки из звеньев
+*/
+class Chain
+{
+public:
+    Chain(float in) {val = in;}
+    Chain& chain(TauBase *link)
+    {
+        val = link->tick(val);
+        return *this;
+    }
+    Chain& chain2(TauBase *link, float in2)
+    {
+        val = link->tick(val, in2);
+        return *this;
+    }
+    float get() { return val; }
+
+protected:
+    float val;
 };
 
 /**
