@@ -42,8 +42,8 @@
 #define MOTOR2_ENCB_PIN     19
 #define MOTOR2_ENCB_CH      4
 
-#define MOTOR3_IN1          8
-#define MOTOR3_IN2          9
+#define MOTOR3_IN1          9
+#define MOTOR3_IN2          8
 #define MOTOR3_ENCA_PIN     20
 #define MOTOR3_ENCA_CH      3
 #define MOTOR3_ENCB_PIN     21

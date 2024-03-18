@@ -122,11 +122,12 @@ void setup(){
     }
 }
 
+data control_data;
 
 void loop(){
     //Update all perripheral
     update(1);
-    data control_data = nrf.getData();
+    control_data = nrf.getData();
 //    Serial.print("op_addr: ");
 //    Serial.print(nrf.getData().op_addr);
 //    Serial.print(" speed_x: ");
@@ -162,14 +163,31 @@ void loop(){
     if(millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME){                         //Move disabled if battery was criticaly low for some time
 
         //Kick from enter button
+//        Serial.println()
         if(buttonEnter.isReleased()) kick();
-        double alpha = atan2(control_data.speed_x, control_data.speed_y);
-        double speed1 = sin(alpha - 2/3*M_PI) * MOTORS_MAX_SPEED;
-        double speed2 = sin(alpha - M_PI) * MOTORS_MAX_SPEED;
-        double speed3 = sin(alpha + 2/3*M_PI) * MOTORS_MAX_SPEED;
-        motor1.setSpeed(1.0);
-        motor2.setSpeed(0.0);
-        motor3.setSpeed(-1.0);
+        
+        if(channel == control_data.op_addr - 16)
+        {
+          if (control_data.flags & (0x01<<6)) kick();
+          float speedy = control_data.speed_y * MOTORS_MAX_SPEED / 127.0;
+          float speedx = control_data.speed_x * MOTORS_MAX_SPEED / 127.0;
+          float speedw = control_data.speed_w * MOTORS_MAX_SPEED / 127.0;
+          float podacha = min(MOTORS_MAX_SPEED, max(abs_(speedy), abs_(speedx)));
+          Serial.print(speedx);
+          Serial.print(" ");
+          float alpha = atan2(speedx, -speedy);
+          double speed1 = sin(float(alpha - 1.0/3.0*M_PI)) * podacha;
+          double speed2 = sin(float(alpha - M_PI)) * podacha;
+          double speed3 = sin(float(alpha + 1.0/3.0*M_PI)) * podacha;
+          Serial.print(speedy);
+          Serial.print(" ");
+          Serial.print(control_data.speed_y);
+          Serial.print(" ");
+          Serial.println(podacha);
+          motor1.setSpeed(speed1 + speedw);
+          motor2.setSpeed(speed2 + speedw);
+          motor3.setSpeed(speed3 + speedw);
+        }
     }
     else{
         motor1.applySpeed(0);
@@ -177,8 +195,8 @@ void loop(){
         motor3.applySpeed(0);
     }
 
-    Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-     + "channel: " + String(channel) + "; ");// + String(motor3.getSpeed()) + " " + String(-5.0));
+//    Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
+//     + "channel: " + String(channel) + "; ");// + String(motor3.getSpeed()) + " " + String(-5.0));
 }
 
 
@@ -216,4 +234,42 @@ void kick(){
         digitalWrite(KICKER, LOW);
         kickTimer = millis();
     }
+}
+
+float min_3(float x1, float x2, float x3)
+{
+  if (x1 > x2)
+  {
+    if (x1 > x3)
+    {
+      return x3;
+    }
+    else
+    {
+      return x1;
+    }
+  }
+  else
+  {
+    if(x2 > x3)
+    {
+      return x3;
+    }
+    else
+    {
+      return x2;
+    }
+  }
+}
+
+float abs_(float x)
+{
+  if (x > 0)
+  {
+    return x;
+  }
+  else
+  {
+    return -x;
+  }
 }
