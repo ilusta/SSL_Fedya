@@ -1,8 +1,6 @@
 #pragma once
 
 class Updatable{
-
-    public:
-    uint16_t virtual update();
-
+public:
+    uint16_t virtual update() = 0;
 };

@@ -4,55 +4,62 @@
 #include "Errors.h"
 #include "Updatable.h"
 
+#include "Tau.h"
+
 
 class Motor : public Updatable{
-    public:
-    Motor(int, int, int, double, int, double, double, double, double);
+public:
+    Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
+            float Ts, float gain, float T);
     void usePID(bool);
     void setSpeed(double speed);
-    void zeroRotations();
-    double getRotations();
+    void zeroAngle();
+    double getAngle();
     double getSpeed();
-    double getUnfilteredSpeed();
-    uint16_t update() override;
+    uint16_t update() override; /*!< Обновить мотор. Вызывать раз в период квантования! */
     void interruptHandler();
-    void applySpeed(double speed);
+    void applyU(float u);
 
-    private:
+private:
     int in1, in2;
     int encB;
 
     bool usePIDFlag = true;
-    double kP, kD, kI, maxIntegratedError;
-    double oldError = 0;
-    double integratedError = 0;
+    PIreg piReg;
+    Saturation spdLimiter;
+    FOD spdFilter;
 
-    int pulsesPerRotation; 
+    int pulsesPerRotation; /*!< мб не надо нам? */
+    float pulses2rad; /*!< Коэффициент пересчета тиков в радианы */
     volatile int counter = 0;
     uint64_t timer = 0;
-    double maxSpeed;
-    double goalSpeed = 0, realSpeed = 0, rotations = 0;
-    double realUnfilteredSpeed = 0, realUnfilteredSpeedOld = 0;
+    float maxSpeed, maxU;
+    float ke; /*!< Конструктивный коэффициент мотора [В/об] */
+
+    float goalSpeed = 0, realSpeed = 0, angle = 0;
 };
 
-//maxSpeed in rotations/second
-Motor::Motor(int in1, int in2, int encB, double maxSpeed, int pulsesPerRotation, double kP, double kD, double kI, double maxIntegratedError){
+//maxSpeed in rad/second
+Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
+            float Ts, float gain, float T)
+            : piReg(Ts, gain, T, maxU),
+            spdLimiter(-maxSpeed, maxSpeed),
+            spdFilter(Ts, Ts*2, true)
+{
     this->in1 = in1;
     this->in2 = in2;
     this->encB = encB;
 
     this->pulsesPerRotation = pulsesPerRotation;
+    this->pulses2rad = 2*M_PI/pulsesPerRotation;
     this->maxSpeed = maxSpeed;
-    this->kP = kP;
-    this->kD = kD;
-    this->kI = kI;
-    this->maxIntegratedError = maxIntegratedError;
+    this->maxU = maxU;
 
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
     pinMode(encB, INPUT);
 
-    applySpeed(0);
+    applyU(0);
 }
 
 void Motor::usePID(bool enablePID){
@@ -72,36 +79,22 @@ uint16_t Motor::update(){
     counter = 0;
     interrupts();
 
-    double dTime = (millis() - timer)/1000.0;
     timer = millis();
-    rotations += double(c)/pulsesPerRotation;
-    realUnfilteredSpeed = double(c)/pulsesPerRotation/dTime;
-    realSpeed = 0.86*realSpeed + 0.07*(realUnfilteredSpeed + realUnfilteredSpeedOld);
-    realUnfilteredSpeedOld = realUnfilteredSpeed;
+    angle += c * pulses2rad;
+    realSpeed = spdFilter.tick(angle);
     
+    float feedforwardU = goalSpeed*ke;
 
-    double u = 0;
-    if(usePIDFlag){
-        double error = goalSpeed - realSpeed;
-        integratedError += error*dTime*kI;
-        if(integratedError > maxIntegratedError) integratedError = maxIntegratedError;
-        if(integratedError < -maxIntegratedError) integratedError = -maxIntegratedError;
-        u = error*kP + (error - oldError)*kD/dTime + integratedError;
-        oldError = error;
+    float feedbackU = piReg.tick(goalSpeed - realSpeed);
 
-        if(u < 0.1 && u > -0.1) u = 0.0;
-    }
-
-
-
-    applySpeed(goalSpeed + u);
+    applyU(feedforwardU + feedbackU);
 
     return NO_ERRORS;
 }
 
-//speed in rotations/second
-void Motor::applySpeed(double speed){
-    int pwm = speed/maxSpeed*255;
+//speed in rad/second
+void Motor::applyU(float u){
+    int pwm = u/maxU*255;
     if(pwm > 255) pwm = 255;
     if(pwm < -255) pwm = -255;
 
@@ -115,21 +108,17 @@ void Motor::applySpeed(double speed){
     }
 }
 
-void Motor::zeroRotations(){
-    rotations = 0.0;
+void Motor::zeroAngle(){
+    angle = 0.0;
 }
 
-double Motor::getRotations(){
-    return rotations;
+double Motor::getAngle(){
+    return angle;
 }
 
-//Returns real speed measured with encoder in rotations/second
+//Returns real speed measured with encoder in rad/second
 double Motor::getSpeed(){
     return realSpeed;
-}
-
-double Motor::getUnfilteredSpeed(){
-    return realUnfilteredSpeed;
 }
 
 void Motor::interruptHandler(){
