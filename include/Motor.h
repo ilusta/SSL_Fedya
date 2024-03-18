@@ -67,9 +67,7 @@ void Motor::usePID(bool enablePID){
 }
 
 void Motor::setSpeed(double speed){
-    goalSpeed = speed;
-    if(goalSpeed > maxSpeed) goalSpeed = maxSpeed;
-    if(goalSpeed < -maxSpeed) goalSpeed = -maxSpeed;
+    goalSpeed = spdLimiter.tick(speed);
 }
 
 uint16_t Motor::update(){
