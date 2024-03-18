@@ -91,9 +91,9 @@ protected:
  * @brief Реальное дифференцирующее звено (фильтр высоких частот) первого порядка
  * 
  */
-class FOHP : public TauBase {
+class FOD : public TauBase {
 public:
-    FOHP(float Ts, float T, bool is_angle = false);
+    FOD(float Ts, float T, bool is_angle = false);
     void reset() override;
     float tick(float in) override;
 
@@ -107,9 +107,9 @@ protected:
  * @brief Фильтр низких частот первого порядка
  * 
  */
-class FOD : public TauBase {
+class FOLP : public TauBase {
 public:
-    FOD(float Ts, float T);
+    FOLP(float Ts, float T);
     void reset() override;
     float tick(float in) override;
 
@@ -155,17 +155,28 @@ protected:
     float max_der;
 };
 
-// class PISD {
-// public:
-//     PISD(float dT, float gain, float kd, float ki, float max_out);
-//     float tick(float xerr, float x_i);
-//     float get_val();
+class PIreg : public TauBase
+{
+public:
+    PIreg(float Ts, float gain, float T, float max_out);
+    float tick(float in) override;
 
-// private:
-//     float _gain;
-//     float _kd;
-//     float _ki;
-//     float _max_out;
-//     Integrator _int;
-//     float _out;
+protected:
+    float kp, ki;
+    Integrator I;
+    Saturation sat;
+}
+
+// class PISD : public TauBase {
+// public:
+//     PISD(float Ts, float gain, float kd, float ki, float max_out);
+//     float tick(float in) override { return 0; }
+//     float tick(float in, float in2) override;
+
+// protected:
+//     float gain;
+//     float kd;
+//     float ki;
+//     float max_out;
+//     Integrator I;
 // };

@@ -14,10 +14,8 @@
 
 #define MOTORS_MAX_SPEED                        6.0     //Rotations/second
 #define MOTORS_PPR                              495     //Encoder pulses per rotation
-#define MOTORS_PID_KP                           4.0
-#define MOTORS_PID_KD                           0.05
-#define MOTORS_PID_KI                           100.0
-#define MOTORS_PID_MAX_INTEGRATED_ERROR         10.0
+#define MOTORS_PI_GAIN                          4.0
+#define MOTORS_PI_TIME_CONSTANT                 0.05
 
 #define BALL_SENSOR_THRESHOLD                   150     //from 0 to 1024
 
@@ -33,9 +31,36 @@ Button buttonEnter = Button(BUTTON_ENTER);
 VoltageMeter batteryVoltage = VoltageMeter(BATTERY_VOLTAGE, 5*2.5/1024.0, BATTERY_CRITICAL_VOLTAGE, 12.4);
 BallSensor ballSensor = BallSensor(BALL_SENSOR, BALL_SENSOR_THRESHOLD);
 Indicator indicator = Indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR_D, INDICATOR_E, INDICATOR_F, INDICATOR_G, INDICATOR_DOT);
-Motor motor1 = Motor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
-Motor motor2 = Motor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
-Motor motor3 = Motor(MOTOR3_IN1, MOTOR3_IN2, MOTOR3_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
+Motor motor1 = Motor(
+    MOTOR1_IN1, 
+    MOTOR1_IN2, 
+    MOTOR1_ENCB_PIN, 
+    12,
+    MOTORS_MAX_SPEED, 
+    MOTORS_PPR, 
+    0.005,
+    MOTORS_PI_GAIN, 
+    MOTORS_PI_TIME_CONSTANT);
+Motor motor2 = Motor(
+    MOTOR2_IN1, 
+    MOTOR2_IN2, 
+    MOTOR2_ENCB_PIN, 
+    12,
+    MOTORS_MAX_SPEED, 
+    MOTORS_PPR, 
+    0.005,
+    MOTORS_PI_GAIN, 
+    MOTORS_PI_TIME_CONSTANT);
+Motor motor3 = Motor(
+    MOTOR3_IN1, 
+    MOTOR3_IN2, 
+    MOTOR3_ENCB_PIN,     
+    12,
+    MOTORS_MAX_SPEED, 
+    MOTORS_PPR, 
+    0.005,
+    MOTORS_PI_GAIN, 
+    MOTORS_PI_TIME_CONSTANT);
 //NRF
 //IMU
 
@@ -142,9 +167,9 @@ void loop(){
         motor3.setSpeed(0.0);
     }
     else{
-        motor1.applySpeed(0);
-        motor2.applySpeed(0);
-        motor3.applySpeed(0);
+        motor1.applyU(0);
+        motor2.applyU(0);
+        motor3.applyU(0);
     }
 
     Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
