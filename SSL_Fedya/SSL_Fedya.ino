@@ -29,6 +29,8 @@
 #define KICK_TIME                               20      //Miliseconds
 #define KICK_TIMEOUT                            1000    //Miliseconds
 
+#define CONNECTION_TIMEOUT                      1000    //Miliseconds
+
 
 //RF24 rad(10, 11);
 
@@ -76,6 +78,8 @@ uint8_t channel = 0;
 
 uint32_t lowBatteryTimer = 0;
 uint32_t kickTimer = 0;
+uint32_t connectionTimer = 0;
+uint8_t connectionCounter = 0;
 
 
 void setup(){
@@ -127,19 +131,30 @@ data control_data;
 void loop(){
     //Update all perripheral
     update(1);
-    control_data = nrf.getData();
-//    Serial.print("op_addr: ");
-//    Serial.print(nrf.getData().op_addr);
-//    Serial.print(" speed_x: ");
-//    Serial.print(nrf.getData().speed_x);
-//    Serial.print(" speed_y: ");
-//    Serial.print(nrf.getData().speed_y);
-//    Serial.print(" speed_w: ");
-//    Serial.print(nrf.getData().speed_w);
-//    Serial.print(" voltage: ");
-//    Serial.print(nrf.getData().voltage);
-//    Serial.print(" flags: ");
-//    Serial.println(nrf.getData().flags); 
+
+    if(nrf.available()){
+        connectionCounter++;
+        connectionTimer = millis();
+        control_data = nrf.getData();
+
+        if(connectionCounter > 10){
+            connectionCounter = 0;
+            indicator.inverseDot();
+        }
+
+        //Serial.print("op_addr: ");
+        //Serial.print(nrf.getData().op_addr);
+        //Serial.print(" speed_x: ");
+        //Serial.print(nrf.getData().speed_x);
+        //Serial.print(" speed_y: ");
+        //Serial.print(nrf.getData().speed_y);
+        //Serial.print(" speed_w: ");
+        //Serial.print(nrf.getData().speed_w);
+        //Serial.print(" voltage: ");
+        //Serial.print(nrf.getData().voltage);
+        //Serial.print(" flags: ");
+        //Serial.println(nrf.getData().flags); 
+    }
 
     //Show ballSensor status on blue LED
     digitalWrite(LED_BLUE, ballSensor.getValue());
@@ -162,31 +177,32 @@ void loop(){
     if(batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE) lowBatteryTimer = millis();
     if(millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME){                         //Move disabled if battery was criticaly low for some time
 
-        //Kick from enter button
-//        Serial.println()
-        if(buttonEnter.isReleased()) kick();
-        
-        if(channel == control_data.op_addr - 16)
-        {
-          if (control_data.flags & (0x01<<6)) kick();
-          float speedy = control_data.speed_y * MOTORS_MAX_SPEED / 127.0;
-          float speedx = control_data.speed_x * MOTORS_MAX_SPEED / 127.0;
-          float speedw = control_data.speed_w * MOTORS_MAX_SPEED / 127.0;
-          float podacha = min(MOTORS_MAX_SPEED, max(abs_(speedy), abs_(speedx)));
-          Serial.print(speedx);
-          Serial.print(" ");
-          float alpha = atan2(speedx, -speedy);
-          double speed1 = sin(float(alpha - 1.0/3.0*M_PI)) * podacha;
-          double speed2 = sin(float(alpha - M_PI)) * podacha;
-          double speed3 = sin(float(alpha + 1.0/3.0*M_PI)) * podacha;
-          Serial.print(speedy);
-          Serial.print(" ");
-          Serial.print(control_data.speed_y);
-          Serial.print(" ");
-          Serial.println(podacha);
-          motor1.setSpeed(speed1 + speedw);
-          motor2.setSpeed(speed2 + speedw);
-          motor3.setSpeed(speed3 + speedw);
+        if(millis() - connectionTimer < CONNECTION_TIMEOUT){
+            //Kick from enter button
+            if(buttonEnter.isReleased()) kick();
+            
+            if(channel == control_data.op_addr - 16)
+            {
+                if (control_data.flags & (0x01<<6)) kick();
+
+                float speedy = control_data.speed_y * MOTORS_MAX_SPEED / 127.0;
+                float speedx = control_data.speed_x * MOTORS_MAX_SPEED / 127.0;
+                float speedw = control_data.speed_w * MOTORS_MAX_SPEED / 127.0;
+                float speed = min(MOTORS_MAX_SPEED, max(abs_(speedy), abs_(speedx)));
+                float alpha = atan2(speedx, -speedy);
+
+                float speed1 = speedw + sin(alpha - 0.33*M_PI) * speed;
+                float speed2 = speedw + sin(alpha - M_PI) * speed;
+                float speed3 = speedw + sin(alpha + 0.33*M_PI) * speed;
+                motor1.setSpeed(speed1);
+                motor2.setSpeed(speed2);
+                motor3.setSpeed(speed3);
+            }
+        }
+        else{
+            motor1.setSpeed(0);
+            motor2.setSpeed(0);
+            motor3.setSpeed(0);
         }
     }
     else{

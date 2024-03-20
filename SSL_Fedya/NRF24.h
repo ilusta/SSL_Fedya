@@ -21,6 +21,8 @@ class NRF24: public Updatable{
     private:
         RF24 rad;
         data dataPackage;
+        bool availableFlag;
+
     public:
         
         NRF24(uint8_t ce, uint8_t csn):rad(ce, csn){}
@@ -30,19 +32,20 @@ class NRF24: public Updatable{
             rad.setChannel(0x4c);                                // Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
             rad.setDataRate(RF24_2MBPS);                        // Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
             rad.setPALevel(RF24_PA_MAX);
-            
-            byte self_addr[]{0xAB, 0xAD, 0xAF};
         
             rad.enableDynamicPayloads();
             rad.setCRCLength(RF24_CRC_16);
             rad.setAutoAck(1, false);
             
             rad.setAddressWidth(3);
+
+            byte self_addr[]{0xAB, 0xAD, 0xAF};
             rad.openReadingPipe(1, self_addr);
             
             rad.startListening();
             rad.powerUp();
         }
+
         uint16_t update() override{
             if(this->rad.available()){                                     
                 
@@ -76,14 +79,21 @@ class NRF24: public Updatable{
                 }
                 dataPackage.voltage = recv[4];
                 dataPackage.flags = recv[5];
-                Serial.println(recv[5]);
+                //Serial.println(recv[5]);
+
+                availableFlag = true;
             }    
 
             return NO_ERRORS;
         }
 
         data getData()
-        {
+        {   
+            availableFlag = false;
             return dataPackage;
+        }
+
+        bool available(){
+            return availableFlag;
         }
 };

@@ -28,6 +28,7 @@ class Indicator : public Updatable{
     void printDash();
     void print(uint8_t);
     void printDot(bool);
+    void inverseDot();
     void clearDot();
 
     private:
@@ -87,6 +88,10 @@ void Indicator::printError(){
 
     state[1] = 0;
     state[2] = 0;
+}
+
+void Indicator::inverseDot(){
+    state[7] = !state[7];
 }
 
 void Indicator::printDot(bool print = 1){
