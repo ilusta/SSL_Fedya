@@ -6,6 +6,11 @@
 #include "Indicator.h"
 #include "Motor.h"
 #include "VoltageMeter.h"
+#include <SPI.h>
+#include "RF24.h"
+#include "NRF24.h"
+//#include <math.h>
+
 
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -24,9 +29,13 @@
 #define KICK_TIME                               10      //Miliseconds
 #define KICK_TIMEOUT                            500     //Miliseconds
 
+#define CONNECTION_TIMEOUT                      1000    //Miliseconds
+
+
+//RF24 rad(10, 11);
 
 //Peripheral
-#define perihN 9
+#define perihN 10
 Button buttonChannelPlus = Button(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus = Button(BUTTON_CHANEL_MINUS);
 Button buttonEnter = Button(BUTTON_ENTER);
@@ -36,7 +45,7 @@ Indicator indicator = Indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR
 Motor motor1 = Motor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor2 = Motor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
 Motor motor3 = Motor(MOTOR3_IN1, MOTOR3_IN2, MOTOR3_ENCB_PIN, MOTORS_MAX_SPEED, MOTORS_PPR, MOTORS_PID_KP, MOTORS_PID_KD, MOTORS_PID_KI, MOTORS_PID_MAX_INTEGRATED_ERROR);
-//NRF
+NRF24 nrf = NRF24(10, 11);//NRF
 //IMU
 
 Updatable* peripheral[perihN] ={
@@ -48,10 +57,21 @@ Updatable* peripheral[perihN] ={
     &motor1,
     &motor2,
     &motor3,
-    //&nrf,
+    &nrf,
     //&imu,
     &indicator
 };
+
+//struct data {
+//  uint8_t op_addr;
+//  uint8_t speed_x;
+//  uint8_t speed_y;
+//  uint8_t speed_w;
+//  uint8_t voltage;
+//  uint8_t flags;
+//};
+
+data control_data;
 
 uint32_t error = NO_ERRORS;
 bool initComplete = false;
@@ -60,6 +80,8 @@ uint8_t channel = 0;
 
 uint32_t lowBatteryTimer = 0;
 uint32_t kickTimer = 0;
+uint32_t connectionTimer = 0;
+uint8_t connectionCounter = 0;
 
 void update(uint32_t time);
 void kick();
@@ -74,6 +96,8 @@ void setup(){
     indicator.printDash();
     indicator.update();
     delay(100);
+
+    nrf.init();
 
     //Serial for debug
     Serial.begin(115200);
@@ -113,6 +137,30 @@ void loop(){
     //Update all perripheral
     update(1);
 
+    if(nrf.available()){
+        connectionCounter++;
+        connectionTimer = millis();
+        control_data = nrf.getData();
+
+        if(connectionCounter > 10){
+            connectionCounter = 0;
+            indicator.inverseDot();
+        }
+
+        //Serial.print("op_addr: ");
+        //Serial.print(nrf.getData().op_addr);
+        //Serial.print(" speed_x: ");
+        //Serial.print(nrf.getData().speed_x);
+        //Serial.print(" speed_y: ");
+        //Serial.print(nrf.getData().speed_y);
+        //Serial.print(" speed_w: ");
+        //Serial.print(nrf.getData().speed_w);
+        //Serial.print(" voltage: ");
+        //Serial.print(nrf.getData().voltage);
+        //Serial.print(" flags: ");
+        //Serial.println(nrf.getData().flags); 
+    }
+
     //Show ballSensor status on blue LED
     digitalWrite(LED_BLUE, ballSensor.getValue());
 
@@ -134,12 +182,33 @@ void loop(){
     if(batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE) lowBatteryTimer = millis();
     if(millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME){                         //Move disabled if battery was criticaly low for some time
 
-        //Kick from enter button
-        if(buttonEnter.isReleased()) kick();
+        if(millis() - connectionTimer < CONNECTION_TIMEOUT){
+            //Kick from enter button
+            if(buttonEnter.isReleased()) kick();
+            
+            if(channel == control_data.op_addr - 16)
+            {
+                if (control_data.flags & (0x01<<6)) kick();
 
-        motor1.setSpeed(0.0);
-        motor2.setSpeed(0.0);
-        motor3.setSpeed(0.0);
+                float speedy = control_data.speed_y * MOTORS_MAX_SPEED / 127.0;
+                float speedx = control_data.speed_x * MOTORS_MAX_SPEED / 127.0;
+                float speedw = control_data.speed_w * MOTORS_MAX_SPEED / 127.0;
+                float speed = min(MOTORS_MAX_SPEED, max(abs_(speedy), abs_(speedx)));
+                float alpha = atan2(speedx, -speedy);
+
+                float speed1 = speedw + sin(alpha - 0.33*M_PI) * speed;
+                float speed2 = speedw + sin(alpha - M_PI) * speed;
+                float speed3 = speedw + sin(alpha + 0.33*M_PI) * speed;
+                motor1.setSpeed(speed1);
+                motor2.setSpeed(speed2);
+                motor3.setSpeed(speed3);
+            }
+        }
+        else{
+            motor1.setSpeed(0);
+            motor2.setSpeed(0);
+            motor3.setSpeed(0);
+        }
     }
     else{
         motor1.applySpeed(0);
@@ -147,8 +216,8 @@ void loop(){
         motor3.applySpeed(0);
     }
 
-    Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-     + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getAnalogValue()));
+//    Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
+//     + "channel: " + String(channel) + "; ");// + String(motor3.getSpeed()) + " " + String(-5.0));
 }
 
 
@@ -186,4 +255,42 @@ void kick(){
         digitalWrite(KICKER, LOW);
         kickTimer = millis();
     }
+}
+
+float min_3(float x1, float x2, float x3)
+{
+  if (x1 > x2)
+  {
+    if (x1 > x3)
+    {
+      return x3;
+    }
+    else
+    {
+      return x1;
+    }
+  }
+  else
+  {
+    if(x2 > x3)
+    {
+      return x3;
+    }
+    else
+    {
+      return x2;
+    }
+  }
+}
+
+float abs_(float x)
+{
+  if (x > 0)
+  {
+    return x;
+  }
+  else
+  {
+    return -x;
+  }
 }
