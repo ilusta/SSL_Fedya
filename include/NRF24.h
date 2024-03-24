@@ -27,10 +27,13 @@ class NRF24: public Updatable{
         
         NRF24(uint8_t ce, uint8_t csn):rad(ce, csn){}
 
-        void init(){
-            rad.begin();                  
-            rad.setChannel(0x4c);                                // Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
-            rad.setDataRate(RF24_2MBPS);                        // Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
+        uint16_t init(){
+            if(!rad.begin()) return NRF_CONNECTION_ERROR;
+
+			uint16_t error = NO_ERRORS;
+
+            rad.setChannel(0x4c);                               				// Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
+            if(!rad.setDataRate(RF24_2MBPS)) error |= NRF_DATA_RATE_ERROR;		// Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
             rad.setPALevel(RF24_PA_MAX);
         
             rad.enableDynamicPayloads();
@@ -44,6 +47,8 @@ class NRF24: public Updatable{
             
             rad.startListening();
             rad.powerUp();
+
+            return error;
         }
 
         uint16_t update() override{
