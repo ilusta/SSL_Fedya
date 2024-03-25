@@ -3,12 +3,12 @@
 #include <SPI.h>
 #include "RF24.h"
 
-
 #include "Arduino.h"
 #include "Errors.h"
 #include "Updatable.h"
 
-struct data {
+struct data
+{
   double op_addr;
   double speed_x;
   double speed_y;
@@ -17,30 +17,33 @@ struct data {
   uint8_t flags;
 };
 
-class NRF24: public Updatable{
-    private:
-        RF24 rad;
-        data dataPackage;
-        bool availableFlag;
+class NRF24 : public Updatable
+{
+private:
+  RF24 rad;
+  data dataPackage;
+  bool availableFlag;
 
-    public:
-        
-        NRF24(uint8_t ce, uint8_t csn):rad(ce, csn){}
+public:
+  NRF24(uint8_t ce, uint8_t csn) : rad(ce, csn) {}
 
-        uint16_t init(){
-            if(!rad.begin()) return NRF_CONNECTION_ERROR;
+  ERROR_TYPE init()
+  {
+    if (!rad.begin())
+      return NRF_CONNECTION_ERROR;
 
-			uint16_t error = NO_ERRORS;
+    ERROR_TYPE error = NO_ERRORS;
 
-            rad.setChannel(0x4c);                               				// Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
-            if(!rad.setDataRate(RF24_2MBPS)) error |= NRF_DATA_RATE_ERROR;		// Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
-            rad.setPALevel(RF24_PA_MAX);
-        
-            rad.enableDynamicPayloads();
-            rad.setCRCLength(RF24_CRC_16);
-            rad.setAutoAck(1, false);
-            
-            rad.setAddressWidth(3);
+    rad.setChannel(0x4c); // Указываем канал передачи данных (от 0 до 125), 27 - значит приём данных осуществляется на частоте 2,427 ГГц.
+    if (!rad.setDataRate(RF24_2MBPS))
+      error |= NRF_DATA_RATE_ERROR; // Указываем скорость передачи данных (RF24_250KBPS, RF24_1MBPS, RF24_2MBPS), RF24_1MBPS - 1Мбит/сек.
+    rad.setPALevel(RF24_PA_MAX);
+
+    rad.enableDynamicPayloads();
+    rad.setCRCLength(RF24_CRC_16);
+    rad.setAutoAck(1, false);
+
+    rad.setAddressWidth(3);
 
             byte self_addr[]{0xAB, 0xAD, 0xAF};
             rad.openReadingPipe(1, self_addr);
@@ -50,57 +53,60 @@ class NRF24: public Updatable{
 
             availableFlag = true;
 
-            return error;
-        }
+    return error;
+  }
 
-        uint16_t update() override{
-            if(this->rad.available()){                                     
-                
-                byte recv[6];
-                rad.read(&recv,  sizeof(recv)); 
-                dataPackage.op_addr = recv[0];
-                if (recv[1] <= 127)
-                {
-                  dataPackage.speed_x = recv[1];  
-                }
-                else
-                {
-                  dataPackage.speed_x = -(255 - recv[1]); 
-                }
-                if (recv[2] <= 127)
-                {
-                  dataPackage.speed_y = recv[2];  
-                }
-                else
-                {
-                  dataPackage.speed_y = -(255 - recv[2]);
-                }
+  ERROR_TYPE update() override
+  {
+    if (this->rad.available())
+    {
 
-                if (recv[3] <= 127)
-                {
-                  dataPackage.speed_w = recv[3];  
-                }
-                else
-                {
-                  dataPackage.speed_w = -(255 - recv[3]);
-                }
-                dataPackage.voltage = recv[4];
-                dataPackage.flags = recv[5];
-                //Serial.println(recv[5]);
+      byte recv[6];
+      rad.read(&recv, sizeof(recv));
+      dataPackage.op_addr = recv[0];
+      if (recv[1] <= 127)
+      {
+        dataPackage.speed_x = recv[1];
+      }
+      else
+      {
+        dataPackage.speed_x = -(255 - recv[1]);
+      }
+      if (recv[2] <= 127)
+      {
+        dataPackage.speed_y = recv[2];
+      }
+      else
+      {
+        dataPackage.speed_y = -(255 - recv[2]);
+      }
 
-                availableFlag = true;
-            }    
+      if (recv[3] <= 127)
+      {
+        dataPackage.speed_w = recv[3];
+      }
+      else
+      {
+        dataPackage.speed_w = -(255 - recv[3]);
+      }
+      dataPackage.voltage = recv[4];
+      dataPackage.flags = recv[5];
+      // Serial.println(recv[5]);
 
-            return NO_ERRORS;
-        }
+      availableFlag = true;
+    }
 
-        data getData()
-        {   
-            availableFlag = false;
-            return dataPackage;
-        }
+    return NO_ERRORS;
+  }
 
-        bool available(){
-            return availableFlag;
-        }
+  data getData()
+  {
+    availableFlag = false;
+    return dataPackage;
+  }
+
+  bool available()
+  {
+    return availableFlag;
+  }
 };

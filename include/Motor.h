@@ -6,17 +6,17 @@
 
 #include "Tau.h"
 
-
-class Motor : public Updatable{
+class Motor : public Updatable
+{
 public:
     Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
-            float Ts, float gain, float T);
+          float Ts, float gain, float T);
     void usePID(bool);
     void setSpeed(double speed);
     void zeroAngle();
     double getAngle();
     double getSpeed();
-    uint16_t update() override; /*!< Обновить мотор. Вызывать раз в период квантования! */
+    ERROR_TYPE update() override; /*!< Обновить мотор. Вызывать раз в период квантования! */
     void interruptHandler();
     void applyU(float u);
 
@@ -30,7 +30,7 @@ private:
     FOD spdFilter;
 
     int pulsesPerRotation; /*!< мб не надо нам? */
-    float pulses2rad; /*!< Коэффициент пересчета тиков в радианы */
+    float pulses2rad;      /*!< Коэффициент пересчета тиков в радианы */
     volatile int counter = 0;
     uint64_t timer = 0;
     float maxSpeed, maxU;
@@ -39,19 +39,19 @@ private:
     float goalSpeed = 0, realSpeed = 0, angle = 0;
 };
 
-//maxSpeed in rad/second
+// maxSpeed in rad/second
 Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
-            float Ts, float gain, float T)
-            : piReg(Ts, gain, T, maxU),
-            spdLimiter(-maxSpeed, maxSpeed),
-            spdFilter(Ts, Ts*2, true)
+             float Ts, float gain, float T)
+    : piReg(Ts, gain, T, maxU),
+      spdLimiter(-maxSpeed, maxSpeed),
+      spdFilter(Ts, Ts * 2, true)
 {
     this->in1 = in1;
     this->in2 = in2;
     this->encB = encB;
 
     this->pulsesPerRotation = pulsesPerRotation;
-    this->pulses2rad = 2*M_PI/pulsesPerRotation;
+    this->pulses2rad = 2 * M_PI / pulsesPerRotation;
     this->maxSpeed = maxSpeed;
     this->maxU = maxU;
 
@@ -62,16 +62,19 @@ Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesP
     applyU(0);
 }
 
-void Motor::usePID(bool enablePID){
+void Motor::usePID(bool enablePID)
+{
     usePIDFlag = enablePID;
 }
 
-void Motor::setSpeed(double speed){
+void Motor::setSpeed(double speed)
+{
     goalSpeed = spdLimiter.tick(speed);
 }
 
-uint16_t Motor::update(){
-    
+ERROR_TYPE Motor::update()
+{
+
     noInterrupts();
     float c = counter;
     counter = 0;
@@ -80,8 +83,8 @@ uint16_t Motor::update(){
     timer = millis();
     angle += c * pulses2rad;
     realSpeed = spdFilter.tick(angle);
-    
-    float feedforwardU = goalSpeed*ke;
+
+    float feedforwardU = goalSpeed * ke;
 
     float feedbackU = piReg.tick(goalSpeed - realSpeed);
 
@@ -90,40 +93,51 @@ uint16_t Motor::update(){
     return NO_ERRORS;
 }
 
-//speed in rad/second
-void Motor::applyU(float u){
-    int pwm = u/maxU*255;
-    if(pwm > 255) pwm = 255;
-    if(pwm < -255) pwm = -255;
+// speed in rad/second
+void Motor::applyU(float u)
+{
+    int pwm = u / maxU * 255;
+    if (pwm > 255)
+        pwm = 255;
+    if (pwm < -255)
+        pwm = -255;
 
-    if(pwm >= 0){
+    if (pwm >= 0)
+    {
         analogWrite(in2, 255);
         analogWrite(in1, 255 - pwm);
     }
-    else{
+    else
+    {
         analogWrite(in2, 255 + pwm);
         analogWrite(in1, 255);
     }
 }
 
-void Motor::zeroAngle(){
+void Motor::zeroAngle()
+{
     angle = 0.0;
 }
 
-double Motor::getAngle(){
+double Motor::getAngle()
+{
     return angle;
 }
 
-//Returns real speed measured with encoder in rad/second
-double Motor::getSpeed(){
+// Returns real speed measured with encoder in rad/second
+double Motor::getSpeed()
+{
     return realSpeed;
 }
 
-void Motor::interruptHandler(){
-    if(digitalRead(encB) == 1){
+void Motor::interruptHandler()
+{
+    if (digitalRead(encB) == 1)
+    {
         counter++;
     }
-    else{
+    else
+    {
         counter--;
     }
 }

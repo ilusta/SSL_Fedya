@@ -4,22 +4,23 @@
 #include "Errors.h"
 #include "Updatable.h"
 
-
-uint8_t calcLinearPercentage(float v, float min, float max){
-        return constrain((v - min) * 100 / (max - min), 0, 100);
+uint8_t calcLinearPercentage(float v, float min, float max)
+{
+    return constrain((v - min) * 100 / (max - min), 0, 100);
 }
 
-class VoltageMeter : public Updatable{
-    private:
+class VoltageMeter : public Updatable
+{
+private:
     uint8_t pin;
     float coef, min, max;
     float voltage;
     uint8_t percentage;
     uint8_t (*calcPercentage)(float v, float min, float max);
-    
-    
-    public:
-    VoltageMeter(uint8_t pin, float coef, float min, float max, uint8_t (*calcPercentage)(float v, float min, float max) = calcLinearPercentage){
+
+public:
+    VoltageMeter(uint8_t pin, float coef, float min, float max, uint8_t (*calcPercentage)(float v, float min, float max) = calcLinearPercentage)
+    {
         this->pin = pin;
         this->coef = coef;
         this->min = min;
@@ -30,18 +31,21 @@ class VoltageMeter : public Updatable{
         update();
     }
 
-    uint16_t update() override{
+    ERROR_TYPE update() override
+    {
         voltage = analogRead(pin) * coef;
         percentage = (*calcPercentage)(voltage, min, max);
 
         return NO_ERRORS;
     }
 
-    float getVoltage(){
+    float getVoltage()
+    {
         return voltage;
     }
 
-    uint8_t getPercentage(){
+    uint8_t getPercentage()
+    {
         return percentage;
     }
 };

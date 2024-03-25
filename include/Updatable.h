@@ -1,6 +1,9 @@
 #pragma once
 
-class Updatable{
+#include "Errors.h"
+
+class Updatable
+{
 public:
-    uint16_t virtual update() = 0;
+    ERROR_TYPE virtual update() = 0;
 };

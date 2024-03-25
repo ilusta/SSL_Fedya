@@ -5,9 +5,10 @@
 
 /**
  * @brief Базовый класс для определения динамических звеньев
- * 
+ *
  */
-class TauBase{
+class TauBase
+{
 public:
     TauBase(float Ts);
     virtual void reset();
@@ -20,10 +21,11 @@ protected:
     float out;
 };
 
-class Gain : public TauBase {
+class Gain : public TauBase
+{
 public:
     Gain(float gain) : TauBase(0) { this->gain = gain; }
-    float tick(float in) { return out = in*gain; }
+    float tick(float in) { return out = in * gain; }
 
 protected:
     float gain;
@@ -31,8 +33,9 @@ protected:
 
 /**
  * @brief Сумматор со сложением
-*/
-class Sum : public TauBase {
+ */
+class Sum : public TauBase
+{
 public:
     Sum() : TauBase(0) {}
     float tick(float in) { return 0; }
@@ -41,8 +44,9 @@ public:
 
 /**
  * @brief Сумматор с вычитанием
-*/
-class Sub : public TauBase {
+ */
+class Sub : public TauBase
+{
 public:
     Sub() : TauBase(0) {}
     float tick(float in) { return 0; }
@@ -51,17 +55,17 @@ public:
 
 /**
  * @brief Класс, позволяющий легко соединять цепочки из звеньев
-*/
+ */
 class Chain
 {
 public:
-    Chain(float in) {val = in;}
-    Chain& chain(TauBase *link)
+    Chain(float in) { val = in; }
+    Chain &chain(TauBase *link)
     {
         val = link->tick(val);
         return *this;
     }
-    Chain& chain2(TauBase *link, float in2)
+    Chain &chain2(TauBase *link, float in2)
     {
         val = link->tick(val, in2);
         return *this;
@@ -74,9 +78,10 @@ protected:
 
 /**
  * @brief Интегратор
- * 
+ *
  */
-class Integrator : public TauBase {
+class Integrator : public TauBase
+{
 public:
     Integrator(float Ts);
     void set(float in);
@@ -89,9 +94,10 @@ protected:
 
 /**
  * @brief Реальное дифференцирующее звено (фильтр высоких частот) первого порядка
- * 
+ *
  */
-class FOD : public TauBase {
+class FOD : public TauBase
+{
 public:
     FOD(float Ts, float T, bool is_angle = false);
     void reset() override;
@@ -105,9 +111,10 @@ protected:
 
 /**
  * @brief Фильтр низких частот первого порядка
- * 
+ *
  */
-class FOLP : public TauBase {
+class FOLP : public TauBase
+{
 public:
     FOLP(float Ts, float T);
     void reset() override;
@@ -121,8 +128,9 @@ protected:
 /**
  * @brief Звено насыщения
  *
-*/
-class Saturation : public TauBase {
+ */
+class Saturation : public TauBase
+{
 public:
     Saturation(float min_val, float max_val) : TauBase(0)
     {
@@ -141,8 +149,9 @@ protected:
 
 /**
  * @brief Звено ограничения первой производной (скорости изменения)
-*/
-class RateLimiter : public TauBase {
+ */
+class RateLimiter : public TauBase
+{
 public:
     RateLimiter(float Ts, float max_der);
     void reset() override;
