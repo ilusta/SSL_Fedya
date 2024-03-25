@@ -6,6 +6,9 @@
 #include "Indicator.h"
 #include "Motor.h"
 #include "VoltageMeter.h"
+#include <SPI.h>
+#include "RF24.h"
+#include "NRF24.h"
 
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -22,9 +25,11 @@
 #define KICK_TIME                               10      //Miliseconds
 #define KICK_TIMEOUT                            500     //Miliseconds
 
+#define CONNECTION_TIMEOUT                      1000    //Miliseconds
+
 
 //Peripheral
-#define perihN 9
+#define perihN 10
 Button buttonChannelPlus = Button(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus = Button(BUTTON_CHANEL_MINUS);
 Button buttonEnter = Button(BUTTON_ENTER);
@@ -61,8 +66,9 @@ Motor motor3 = Motor(
     0.005,
     MOTORS_PI_GAIN, 
     MOTORS_PI_TIME_CONSTANT);
-//NRF
-//IMU
+
+NRF24 nrf = NRF24(NRF_CHIP_ENABLE, NRF_CHIP_SELECT);
+//TODO: imu
 
 Updatable* peripheral[perihN] ={
     &buttonChannelPlus,
@@ -73,10 +79,12 @@ Updatable* peripheral[perihN] ={
     &motor1,
     &motor2,
     &motor3,
-    //&nrf,
+    &nrf,
     //&imu,
     &indicator
 };
+
+data controlData;
 
 uint32_t error = NO_ERRORS;
 bool initComplete = false;
@@ -85,6 +93,7 @@ uint8_t channel = 0;
 
 uint32_t lowBatteryTimer = 0;
 uint32_t kickTimer = 0;
+uint32_t connectionTimer = 0;
 
 void update(uint32_t time);
 void kick();
@@ -113,9 +122,12 @@ void setup(){
     motor2.usePID(true);
     motor3.usePID(true);
 
+    //Initialize NRF
+    error |= nrf.init();
+
     //Retrieve channel number from EEPROM
     channel = EEPROM.read(0);
-    if(channel > 9) channel = 0;
+    if(channel > 16) channel = 1;
     Serial.println("Channel: " + String(channel));
 
     //Print battery voltage
@@ -128,7 +140,7 @@ void setup(){
         initComplete = true;
     }
     else {
-        Serial.println("Initialization error");
+        Serial.println("Initialization error: " + String(error));
         initComplete = false;
     }
 }
@@ -138,16 +150,27 @@ void loop(){
     //Update all perripheral
     update(1);
 
+    //Read data from NRF
+    if(nrf.available()){
+        indicator.printDot();
+        connectionTimer = millis();
+        controlData = nrf.getData();
+    }
+    //Clear dot on indicator if no data was received in some time
+    if(millis() - connectionTimer > 10){
+        indicator.clearDot();
+    }
+
     //Show ballSensor status on blue LED
     digitalWrite(LED_BLUE, ballSensor.getValue());
 
     //Update NRF channel number
-    if(buttonChannelPlus.isReleased() && channel < 9){
+    if(buttonChannelPlus.isReleased() && channel < 16){
         channel++;
         EEPROM.write(0, channel);
         Serial.println("Channel changed to: " + String(channel));
     }
-    if(buttonChannelMinus.isReleased() && channel > 0){
+    if(buttonChannelMinus.isReleased() && channel > 1){
         channel--;
         EEPROM.write(0, channel);
         Serial.println("Channel changed to: " + String(channel));
@@ -162,9 +185,35 @@ void loop(){
         //Kick from enter button
         if(buttonEnter.isReleased()) kick();
 
-        motor1.setSpeed(0.0);
-        motor2.setSpeed(0.0);
-        motor3.setSpeed(0.0);
+        //Remote control
+        if(millis() - connectionTimer < CONNECTION_TIMEOUT){    
+            if(channel == controlData.op_addr - 16){
+                
+                //Kick
+                if(controlData.flags & (0x01<<6)) kick();
+
+                //Auto kick
+                //if(controlData.flags & (0x01<<6) && ballSensor.getValue()) kick();
+
+                float speedy = controlData.speed_y * MOTORS_MAX_SPEED / 127.0;
+                float speedx = controlData.speed_x * MOTORS_MAX_SPEED / 127.0;
+                float speedw = controlData.speed_w * MOTORS_MAX_SPEED / 127.0;
+                float speed = min(MOTORS_MAX_SPEED, max(abs(speedy), abs(speedx)));
+                float alpha = atan2(speedx, -speedy);
+
+                float speed1 = speedw + sin(alpha - 0.33*M_PI) * speed;
+                float speed2 = speedw + sin(alpha - M_PI) * speed;
+                float speed3 = speedw + sin(alpha + 0.33*M_PI) * speed;
+                motor1.setSpeed(speed1);
+                motor2.setSpeed(speed2);
+                motor3.setSpeed(speed3);
+            }
+        }
+        else{
+            motor1.setSpeed(0);
+            motor2.setSpeed(0);
+            motor3.setSpeed(0);
+        }
     }
     else{
         motor1.applyU(0);
@@ -173,7 +222,7 @@ void loop(){
     }
 
     Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-     + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getAnalogValue()));
+    + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getValue()) + "/" + String(ballSensor.getAnalogValue()));
 }
 
 

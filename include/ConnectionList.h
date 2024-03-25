@@ -71,4 +71,4 @@
 
 
 //-----------------------MPU-9250--------------------------
-#define NRF_CHIP_SELECT     12
+#define IMU_CHIP_SELECT     12

@@ -165,7 +165,7 @@ protected:
     float kp, ki;
     Integrator I;
     Saturation sat;
-}
+};
 
 // class PISD : public TauBase {
 // public:

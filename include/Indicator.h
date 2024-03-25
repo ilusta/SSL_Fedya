@@ -24,10 +24,12 @@ class Indicator : public Updatable{
     uint16_t update() override;
     void clear();
     void printL();
+    void printH();
     void printError();
     void printDash();
     void print(uint8_t);
     void printDot(bool);
+    void inverseDot();
     void clearDot();
 
     private:
@@ -59,7 +61,7 @@ void Indicator::clear(){
 }
 
 void Indicator::print(uint8_t number){
-    if(number > 9) return;
+    if(number > 9) printH();
 
     for(int i = 0; i < segmentN-1; i++)
         state[i] = digits[number] & (1 << i);
@@ -70,6 +72,14 @@ void Indicator::printDash(){
         state[i] = 0;
 
     state[6] = 1;
+}
+
+void Indicator::printH(){
+    for(int i = 0; i < segmentN-1; i++)
+        state[i] = 1;
+
+    state[0] = 0;
+    state[3] = 0;
 }
 
 void Indicator::printL(){
@@ -87,6 +97,10 @@ void Indicator::printError(){
 
     state[1] = 0;
     state[2] = 0;
+}
+
+void Indicator::inverseDot(){
+    state[7] = !state[7];
 }
 
 void Indicator::printDot(bool print = 1){
