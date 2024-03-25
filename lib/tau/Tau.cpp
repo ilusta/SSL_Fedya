@@ -10,7 +10,6 @@ TauBase::TauBase(float Ts)
 
 void TauBase::reset()
 {
-
 }
 
 float TauBase::get_val()
@@ -58,21 +57,21 @@ float FOD::tick(float in)
 {
     float err = in - I.get_val();
 
-    if(is_angle)
+    if (is_angle)
     {
-        if(err > M_PI)
+        if (err > M_PI)
         {
             err -= M_2PI;
             I.set(I.get_val() + M_2PI);
         }
-        else if(err < -M_2PI)
+        else if (err < -M_2PI)
         {
             err += M_2PI;
             I.set(I.get_val() - M_2PI);
         }
     }
 
-    out = err /  T;
+    out = err / T;
     I.tick(out);
     return out;
 }
@@ -99,11 +98,10 @@ float FOLP::tick(float in)
 
 /*!v Rate limiter */
 
-RateLimiter::RateLimiter(float Ts, float max_der) : 
-    TauBase(Ts), I(Ts), sat(-max_der, max_der)
+RateLimiter::RateLimiter(float Ts, float max_der) : TauBase(Ts), I(Ts), sat(-max_der, max_der)
 {
     this->max_der = max_der;
-    this->gain = 1/Ts;
+    this->gain = 1 / Ts;
 }
 
 void RateLimiter::reset()
@@ -114,21 +112,20 @@ void RateLimiter::reset()
 float RateLimiter::tick(float in)
 {
     float err = in - out;
-    float satin = gain*err;
+    float satin = gain * err;
     return out = I.tick(sat.tick(satin));
 }
 
-PIreg::PIreg(float Ts, float gain, float T, float max_out) :
-    TauBase(Ts), I(Ts), sat(-max_out, max_out)
+PIreg::PIreg(float Ts, float gain, float T, float max_out) : TauBase(Ts), I(Ts), sat(-max_out, max_out)
 {
     kp = gain;
-    ki = ki/T;
+    ki = ki / T;
 }
 
 float PIreg::tick(float in)
 {
     out = kp * in + ki * I.tick(in);
-    if(out != sat.tick(out))
+    if (out != sat.tick(out))
     {
         I.tick(-in);
     }

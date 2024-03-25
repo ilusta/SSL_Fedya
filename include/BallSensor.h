@@ -4,34 +4,39 @@
 #include "Errors.h"
 #include "Updatable.h"
 
-
-class BallSensor : public Updatable{
-    private:
+class BallSensor : public Updatable
+{
+private:
     int pin;
     bool value;
-    uint16_t analogValue, threshold; 
-    
-    public:
-    BallSensor(int pin, uint16_t threshold){
+    uint16_t analogValue, threshold;
+
+public:
+    BallSensor(int pin, uint16_t threshold)
+    {
         this->pin = pin;
         this->threshold = threshold;
 
         pinMode(pin, INPUT);
     }
 
-    void setThreshold(uint16_t threshold){
+    void setThreshold(uint16_t threshold)
+    {
         this->threshold = threshold;
     }
 
-    bool getValue(){
+    bool getValue()
+    {
         return value;
     }
 
-    uint16_t getAnalogValue(){
+    uint16_t getAnalogValue()
+    {
         return analogValue;
     }
 
-    uint16_t update() override{
+    ERROR_TYPE update() override
+    {
         analogValue = analogRead(pin);
         value = analogValue > threshold;
 
