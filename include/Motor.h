@@ -9,14 +9,16 @@
 class Motor : public Updatable
 {
 public:
-    Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
+    Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
           float Ts, float gain, float T);
     void usePID(bool);
+    /*!v Установить целевую скорость в [рад/с] */
     void setSpeed(double speed);
     void zeroAngle();
     double getAngle();
     double getSpeed();
-    ERROR_TYPE update() override; /*!< Обновить мотор. Вызывать раз в период квантования! */
+    /*!v Обновить мотор. Вызывать раз в период квантования! */
+    ERROR_TYPE update() override;
     void interruptHandler();
     void applyU(float u);
 
@@ -28,6 +30,7 @@ private:
     PIreg piReg;
     Saturation spdLimiter;
     FOD spdFilter;
+    RateLimiter UchangeLimiter;
 
     int pulsesPerRotation; /*!< мб не надо нам? */
     float pulses2rad;      /*!< Коэффициент пересчета тиков в радианы */
@@ -40,11 +43,12 @@ private:
 };
 
 // maxSpeed in rad/second
-Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesPerRotation,
+Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
              float Ts, float gain, float T)
     : piReg(Ts, gain, T, maxU),
       spdLimiter(-maxSpeed, maxSpeed),
-      spdFilter(Ts, Ts * 2, true)
+      spdFilter(Ts, Ts * 2, true),
+      UchangeLimiter(Ts, 100 /* [V/s] */)
 {
     this->in1 = in1;
     this->in2 = in2;
@@ -54,6 +58,7 @@ Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, int pulsesP
     this->pulses2rad = 2 * M_PI / pulsesPerRotation;
     this->maxSpeed = maxSpeed;
     this->maxU = maxU;
+    this->ke = ke;
 
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
@@ -74,7 +79,6 @@ void Motor::setSpeed(double speed)
 
 ERROR_TYPE Motor::update()
 {
-
     noInterrupts();
     float c = counter;
     counter = 0;
@@ -86,7 +90,7 @@ ERROR_TYPE Motor::update()
 
     float feedforwardU = goalSpeed * ke;
 
-    float feedbackU = piReg.tick(goalSpeed - realSpeed);
+    float feedbackU = usePIDFlag ? piReg.tick(goalSpeed - realSpeed) : 0;
 
     applyU(feedforwardU + feedbackU);
 
@@ -96,7 +100,9 @@ ERROR_TYPE Motor::update()
 // speed in rad/second
 void Motor::applyU(float u)
 {
+    float slowed_u = UchangeLimiter.tick(u);
     int pwm = u / maxU * 255;
+    
     if (pwm > 255)
         pwm = 255;
     if (pwm < -255)

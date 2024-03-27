@@ -38,11 +38,12 @@ float Integrator::tick(float in)
 {
     I += in * Ts;
     out = I;
+    return out;
 }
 
-/*!v First order high pass filter */
+/*!v First order differetiator */
 
-FOD::FOD(float Ts, float T, bool is_angle = false) : TauBase(Ts), I(Ts)
+FOD::FOD(float Ts, float T, bool is_angle) : TauBase(Ts), I(Ts)
 {
     this->T = T;
     this->is_angle = is_angle;
@@ -59,15 +60,15 @@ float FOD::tick(float in)
 
     if (is_angle)
     {
-        if (err > M_PI)
+        if (err > TAU_PI)
         {
-            err -= M_2PI;
-            I.set(I.get_val() + M_2PI);
+            err -= TAU_2PI;
+            I.set(I.get_val() + TAU_2PI);
         }
-        else if (err < -M_2PI)
+        else if (err < -TAU_2PI)
         {
-            err += M_2PI;
-            I.set(I.get_val() - M_2PI);
+            err += TAU_2PI;
+            I.set(I.get_val() - TAU_2PI);
         }
     }
 
