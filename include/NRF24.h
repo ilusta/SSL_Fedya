@@ -9,11 +9,11 @@
 
 struct data
 {
-  double op_addr;
-  double speed_x;
-  double speed_y;
-  double speed_w;
-  double voltage;
+  uint8_t op_addr;
+  int8_t speed_x;
+  int8_t speed_y;
+  int8_t speed_w;
+  uint8_t voltage;
   uint8_t flags;
 };
 
@@ -64,31 +64,9 @@ public:
       byte recv[6];
       rad.read(&recv, sizeof(recv));
       dataPackage.op_addr = recv[0];
-      if (recv[1] <= 127)
-      {
-        dataPackage.speed_x = recv[1];
-      }
-      else
-      {
-        dataPackage.speed_x = -(255 - recv[1]);
-      }
-      if (recv[2] <= 127)
-      {
-        dataPackage.speed_y = recv[2];
-      }
-      else
-      {
-        dataPackage.speed_y = -(255 - recv[2]);
-      }
-
-      if (recv[3] <= 127)
-      {
-        dataPackage.speed_w = recv[3];
-      }
-      else
-      {
-        dataPackage.speed_w = -(255 - recv[3]);
-      }
+      dataPackage.speed_x = recv[1];
+      dataPackage.speed_y = recv[2];
+      dataPackage.speed_w = recv[3];
       dataPackage.voltage = recv[4];
       dataPackage.flags = recv[5];
       // Serial.println(recv[5]);

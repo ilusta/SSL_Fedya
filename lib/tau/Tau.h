@@ -1,7 +1,7 @@
 #pragma once
 
-#define M_PI 3.1415926
-#define M_2PI 6.2831853
+#define TAU_PI 3.1415926
+#define TAU_2PI 6.2831853
 
 /**
  * @brief Базовый класс для определения динамических звеньев
