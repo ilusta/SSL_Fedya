@@ -10,7 +10,7 @@ class Motor : public Updatable
 {
 public:
     Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
-          float Ts, float gain, float T);
+          float Ts, float gain, float ki);
     void usePID(bool);
     /*!v Установить целевую скорость в [рад/с] */
     void setSpeed(double speed);
@@ -29,6 +29,7 @@ private:
     bool usePIDFlag = true;
     PIreg piReg;
     Saturation spdLimiter;
+    RateLimiter accLimiter;
     FOD spdFilter;
     RateLimiter UchangeLimiter;
 
@@ -44,11 +45,12 @@ private:
 
 // maxSpeed in rad/second
 Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
-             float Ts, float gain, float T)
-    : piReg(Ts, gain, T, maxU),
+             float Ts, float gain, float ki)
+    : piReg(Ts, gain, ki, maxU),
       spdLimiter(-maxSpeed, maxSpeed),
+      accLimiter(Ts, 400),
       spdFilter(Ts, Ts * 2, true),
-      UchangeLimiter(Ts, 100 /* [V/s] */)
+      UchangeLimiter(Ts, 300 /* [V/s] */)
 {
     this->in1 = in1;
     this->in2 = in2;
@@ -74,7 +76,7 @@ void Motor::usePID(bool enablePID)
 
 void Motor::setSpeed(double speed)
 {
-    goalSpeed = spdLimiter.tick(speed);
+    goalSpeed = accLimiter.tick(spdLimiter.tick(speed));
 }
 
 ERROR_TYPE Motor::update()
@@ -101,8 +103,9 @@ ERROR_TYPE Motor::update()
 void Motor::applyU(float u)
 {
     float slowed_u = UchangeLimiter.tick(u);
-    int pwm = u / maxU * 255;
-    
+    // float slowed_u = u;
+    int pwm = slowed_u / maxU * 255;
+
     if (pwm > 255)
         pwm = 255;
     if (pwm < -255)

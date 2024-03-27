@@ -10,6 +10,7 @@
 #include "RF24.h"
 #include "NRF24.h"
 #include "Kicker.h"
+#include "IMU.h"
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
 #define BATTERY_CRITICAL_VOLTAGE                9.6     //Volts
@@ -28,7 +29,7 @@
 
 #define MOTORS_PPR                              495     //Encoder pulses per rotation
 #define MOTORS_PI_GAIN                          0.7
-#define MOTORS_PI_TIME_CONSTANT                 0.01
+#define MOTORS_PI_KI                            1000
 
 #define BALL_SENSOR_THRESHOLD                   120     //from 0 to 1024
 
@@ -40,9 +41,6 @@
 #define Ts_us                                   5000 /*!< sample time [microseconds]*/
 #define Ts_s                                    ((float)Ts_us * 0.000001)
 
-// Peripheral
-#define INPUT_N 6
-#define OUTPUT_N 5
 
 Button buttonChannelPlus(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus(BUTTON_CHANEL_MINUS);
@@ -60,7 +58,7 @@ Motor motor1(
     MOTORS_PPR,
     Ts_s,
     MOTORS_PI_GAIN,
-    MOTORS_PI_TIME_CONSTANT);
+    MOTORS_PI_KI);
 Motor motor2(
     MOTOR2_IN1,
     MOTOR2_IN2,
@@ -71,7 +69,7 @@ Motor motor2(
     MOTORS_PPR,
     Ts_s,
     MOTORS_PI_GAIN,
-    MOTORS_PI_TIME_CONSTANT);
+    MOTORS_PI_KI);
 Motor motor3(
     MOTOR3_IN1,
     MOTOR3_IN2,
@@ -82,13 +80,13 @@ Motor motor3(
     MOTORS_PPR,
     Ts_s,
     MOTORS_PI_GAIN,
-    MOTORS_PI_TIME_CONSTANT);
+    MOTORS_PI_KI);
 Kicker kicker(KICKER, KICK_TIME, KICK_TIMEOUT);
 
-NRF24 nrf = NRF24(NRF_CHIP_ENABLE, NRF_CHIP_SELECT);
-// TODO: imu
+NRF24 nrf(NRF_CHIP_ENABLE, NRF_CHIP_SELECT);
+IMU imu(IMU_CHIP_SELECT);
 
-Updatable *input[INPUT_N] =
+Updatable *input[] =
     {
         &buttonChannelPlus,
         &buttonChannelMinus,
@@ -96,10 +94,10 @@ Updatable *input[INPUT_N] =
         &batteryVoltage,
         &ballSensor,
         &nrf,
-        //&imu,
+        &imu
 };
 
-Updatable *output[OUTPUT_N] =
+Updatable *output[] =
     {
         &motor1,
         &motor2,
@@ -107,6 +105,10 @@ Updatable *output[OUTPUT_N] =
         &kicker,
         &indicator
 };
+
+// Peripheral
+#define INPUT_N (sizeof(input) / sizeof(input[0]))
+#define OUTPUT_N (sizeof(output) / sizeof(output[0]))
 
 data controlData;
 bool autoKick = false;
@@ -170,6 +172,8 @@ void setup()
     batteryVoltage.update();
     Serial.println("Battery voltage: " + String(batteryVoltage.getVoltage()) + "V");
 
+    imu.init();
+
     // Check if initialization was complited successfully
     if (error == NO_ERRORS)
     {
@@ -191,6 +195,7 @@ void loop()
     while(micros() < time_keeper + Ts_us);
     time_delta = micros() - time_keeper;
     time_keeper = micros();
+
     // Update all perripheral
     uint32_t error = updateIN();
 
@@ -259,7 +264,12 @@ void loop()
                     MOTORS_ROBOT_MAX_SPEED);
                 float alpha = atan2(speedx_mms, -speedy_mms);
 
-                float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM;
+                static PIreg yawRate(Ts_s, 0.4, 0, 4);
+                static FOD yawFod(Ts_s, 1, false);
+
+                float w_feedback_rads = yawRate.tick(speedw_rads + imu.getYawRate());
+
+                float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * fabs(yawFod.tick(speed_mms));
 
                 float speed1_mms = speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
                 float speed2_mms = speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
@@ -271,22 +281,23 @@ void loop()
                 motor2.setSpeed(speed2_mms * mms2rads);
                 motor3.setSpeed(speed3_mms * mms2rads);
 
-                Serial.println(
-                //     // + " " + String(controlData.speed_x)
-                //     // + " " + String(controlData.speed_y)
-                //     // + " " + String(controlData.speed_w)
-                //     // + " " + String(speedx_mms)
-                //     // + " " + String(speedy_mms)
-                //     // + " " + String(speedw_rads)
-                //     + " " + String(speed_mms)
-                //     + " " + String(alpha)
-                //     + " " + String(speedw_wheel_mms)
-                //     + " " + String(speed1_mms)
-                //     + " " + String(speed2_mms)
-                //     + " " + String(speed3_mms)
-                    + " " + String(time_keeper)
-                    + " " + String(motor1.getSpeed())
-                );
+                // Serial.println(
+                // //     // + " " + String(controlData.speed_x)
+                // //     // + " " + String(controlData.speed_y)
+                // //     // + " " + String(controlData.speed_w)
+                // //     // + " " + String(speedx_mms)
+                // //     // + " " + String(speedy_mms)
+                // //     // + " " + String(speedw_rads)
+                // //     + " " + String(speed_mms)
+                // //     + " " + String(alpha)
+                // //     + " " + String(speedw_wheel_mms)
+                // //     + " " + String(speed1_mms)
+                // //     + " " + String(speed2_mms)
+                // //     + " " + String(speed3_mms)
+                //     // + " " + String(time_keeper)
+                //     // + " " + String(motor1.getSpeed())
+                //     + " " + String(imu.getYawRate())
+                // );
             }
         }
         else
@@ -322,10 +333,10 @@ void loop()
     // Update indicator
     indicator.update();
 
-    // Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
-    //         + "channel: " + String(channel)
-    //         + "; ball sensor: " + String(ballSensor.getValue()) 
-    //         + "/" + String(ballSensor.getAnalogValue()));
+    Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
+            + "channel: " + String(channel)
+            + "; ball sensor: " + String(ballSensor.getValue()) 
+            + "/" + String(ballSensor.getAnalogValue()));
 }
 
 // Update all input perripheral

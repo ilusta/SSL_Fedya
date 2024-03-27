@@ -117,10 +117,10 @@ float RateLimiter::tick(float in)
     return out = I.tick(sat.tick(satin));
 }
 
-PIreg::PIreg(float Ts, float gain, float T, float max_out) : TauBase(Ts), I(Ts), sat(-max_out, max_out)
+PIreg::PIreg(float Ts, float gain, float ki, float max_out) : TauBase(Ts), I(Ts), sat(-max_out, max_out)
 {
     kp = gain;
-    ki = ki / T;
+    ki = kp * ki;
 }
 
 float PIreg::tick(float in)
