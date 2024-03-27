@@ -1,6 +1,6 @@
 #pragma once
 
-typedef uint32_t ERROR_TYPE;
+typedef uint16_t ERROR_TYPE;
 
 #define NO_ERRORS                       0b0000000000000000
 

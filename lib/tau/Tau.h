@@ -167,7 +167,7 @@ protected:
 class PIreg : public TauBase
 {
 public:
-    PIreg(float Ts, float gain, float T, float max_out);
+    PIreg(float Ts, float gain, float ki, float max_out);
     float tick(float in) override;
 
 protected:
