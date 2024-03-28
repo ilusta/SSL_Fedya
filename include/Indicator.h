@@ -61,10 +61,13 @@ void Indicator::clear(){
 }
 
 void Indicator::print(uint8_t number){
-    if(number > 9) printH();
-
-    for(int i = 0; i < segmentN-1; i++)
-        state[i] = digits[number] & (1 << i);
+    if(number > 9){
+         printH();
+    }
+    else{
+        for(int i = 0; i < segmentN-1; i++)
+            state[i] = digits[number] & (1 << i);
+    }
 }
 
 void Indicator::printDash(){

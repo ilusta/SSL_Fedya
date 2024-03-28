@@ -48,6 +48,8 @@ class NRF24: public Updatable{
             rad.startListening();
             rad.powerUp();
 
+            availableFlag = true;
+
             return error;
         }
 

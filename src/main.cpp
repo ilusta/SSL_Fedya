@@ -17,12 +17,12 @@
 
 #define MOTORS_MAX_SPEED                        6.0     //Rotations/second
 #define MOTORS_PPR                              495     //Encoder pulses per rotation
-#define MOTORS_PID_KP                           4.0
-#define MOTORS_PID_KD                           0.05
-#define MOTORS_PID_KI                           100.0
-#define MOTORS_PID_MAX_INTEGRATED_ERROR         10.0
+#define MOTORS_PID_KP                           10.0
+#define MOTORS_PID_KD                           0.1
+#define MOTORS_PID_KI                           0.0
+#define MOTORS_PID_MAX_INTEGRATED_ERROR         5.0
 
-#define BALL_SENSOR_THRESHOLD                   150     //from 0 to 1024
+#define BALL_SENSOR_THRESHOLD                   120     //from 0 to 1024
 
 #define KICK_TIME                               10      //Miliseconds
 #define KICK_TIMEOUT                            500     //Miliseconds
@@ -59,6 +59,7 @@ Updatable* peripheral[perihN] ={
 };
 
 data controlData;
+bool autoKick = false;
 
 uint32_t error = NO_ERRORS;
 bool initComplete = false;
@@ -151,6 +152,8 @@ void loop(){
     }
     indicator.print(channel);
 
+    //motor3.setSpeed(-MOTORS_MAX_SPEED);
+    
     //Check battery voltage
     if(batteryVoltage.getVoltage() < BATTERY_WARNING_VOLTAGE) indicator.printL();                   //Low battery warning
     if(batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE) lowBatteryTimer = millis();
@@ -158,6 +161,8 @@ void loop(){
 
         //Kick from enter button
         if(buttonEnter.isReleased()) kick();
+
+        if(autoKick && ballSensor.getValue()) kick();
 
         //Remote control
         if(millis() - connectionTimer < CONNECTION_TIMEOUT){    
@@ -167,7 +172,7 @@ void loop(){
                 if(controlData.flags & (0x01<<6)) kick();
 
                 //Auto kick
-                //if(controlData.flags & (0x01<<6) && ballSensor.getValue()) kick();
+                autoKick = controlData.flags & (0x01<<4);
 
                 float speedy = controlData.speed_y * MOTORS_MAX_SPEED / 127.0;
                 float speedx = controlData.speed_x * MOTORS_MAX_SPEED / 127.0;
@@ -178,6 +183,7 @@ void loop(){
                 float speed1 = speedw + sin(alpha - 0.33*M_PI) * speed;
                 float speed2 = speedw + sin(alpha - M_PI) * speed;
                 float speed3 = speedw + sin(alpha + 0.33*M_PI) * speed;
+                //motor2.setSpeed(3.0*(millis()%2000 > 1000));
                 motor1.setSpeed(speed1);
                 motor2.setSpeed(speed2);
                 motor3.setSpeed(speed3);
@@ -187,6 +193,8 @@ void loop(){
             motor1.setSpeed(0);
             motor2.setSpeed(0);
             motor3.setSpeed(0);
+
+            autoKick = false;
         }
     }
     else{
@@ -196,7 +204,8 @@ void loop(){
     }
 
     Serial.println("Voltage: " + String(batteryVoltage.getVoltage()) + "V; "
-    + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getValue()) + "/" + String(ballSensor.getAnalogValue()));
+    + "channel: " + String(channel) + "; ball sensor: " + String(ballSensor.getValue()) + "/" + String(ballSensor.getAnalogValue())
+    + "; " + String(motor1.getSpeed()) + "; " + String(3.0*(millis()%2000 > 1000)));
 }
 
 

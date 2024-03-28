@@ -32,8 +32,8 @@ class BallSensor : public Updatable{
     }
 
     uint16_t update() override{
-        analogValue = analogRead(pin);
-        value = analogValue > threshold;
+        analogValue = analogRead(pin);//*0.2 + analogValue*0.8;
+        value = analogValue < threshold;
 
         return NO_ERRORS;
     }
