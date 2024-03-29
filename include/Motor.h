@@ -48,9 +48,9 @@ Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, i
              float Ts, float gain, float ki)
     : piReg(Ts, gain, ki, maxU),
       spdLimiter(-maxSpeed, maxSpeed),
-      accLimiter(Ts, 400),
+      accLimiter(Ts, 9999),
       spdFilter(Ts, Ts * 2, true),
-      UchangeLimiter(Ts, 300 /* [V/s] */)
+      UchangeLimiter(Ts, 9999 /* [V/s] */)
 {
     this->in1 = in1;
     this->in2 = in2;

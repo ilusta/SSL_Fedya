@@ -31,7 +31,7 @@
 #define MOTORS_PI_GAIN                          0.7
 #define MOTORS_PI_KI                            1000
 
-#define BALL_SENSOR_THRESHOLD                   120     //from 0 to 1024
+#define BALL_SENSOR_THRESHOLD                   20     //from 0 to 1024
 
 #define KICK_TIME                               10      //Miliseconds
 #define KICK_TIMEOUT                            500     //Miliseconds
@@ -242,6 +242,10 @@ void loop()
         if (buttonEnter.isReleased())
             kick();
 
+        // Kick from enter button
+        if (autoKick && ballSensor.getValue())
+            kick();
+
         // Remote control
         if (millis() - connectionTimer < CONNECTION_TIMEOUT)
         {
@@ -252,7 +256,7 @@ void loop()
                 if (controlData.flags & (0x01 << 6))
                     kick();
 
-                //Auto kick
+                // Auto kick
                 autoKick = controlData.flags & (0x01<<4);
 
                 float speedy_mms = controlData.speed_y * MOTORS_POPUGI_TO_XY_MM_S;
@@ -264,7 +268,7 @@ void loop()
                     MOTORS_ROBOT_MAX_SPEED);
                 float alpha = atan2(speedx_mms, -speedy_mms);
 
-                static PIreg yawRate(Ts_s, 0.4, 0, 4);
+                static PIreg yawRate(Ts_s, 0.15, 0, 4);
                 static FOD yawFod(Ts_s, 1, false);
 
                 float w_feedback_rads = yawRate.tick(speedw_rads + imu.getYawRate());
