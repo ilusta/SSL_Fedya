@@ -27,6 +27,7 @@ Ball sensor status is shown on blue LED. Ball sensor threshold is configured by 
 - Battery voltmeter for undervoltage protection
 - 2 LEDs
 - NRF
+- MPU-9250
 
 ## TODO:
-- MPU-9250
+
