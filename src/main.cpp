@@ -19,11 +19,11 @@
 #define MOTORS_ROBOT_MAX_SPEED                  1500 /*!< [mm/s] */
 
 #define MOTORS_MAX_U                            12.0 /*!< [V] */
-#define MOTORS_MAX_SPEED                        38.0     //rad/second
+#define MOTORS_MAX_SPEED                        30.0     //rad/second
 #define MOTORS_KE                               0.229   /*!< [V/rad/s] */
 
 #define MOTORS_POPUGI_TO_XY_MM_S                10.0
-#define MOTORS_POPUGI_TO_W_RAD_S                0.1
+#define MOTORS_POPUGI_TO_W_RAD_S                0.04
 #define MOTORS_WHEEL_RAD_MM                     25.0
 #define MOTORS_ROBOT_RAD_MM                     90.0
 
@@ -249,9 +249,10 @@ void loop()
         // Remote control
         if (millis() - connectionTimer < CONNECTION_TIMEOUT)
         {
+            static float speedy_mms = 0, speedx_mms = 0, speedw_rads = 0;
+
             if (channel == controlData.op_addr - 16)
             {
-
                 // Kick
                 if (controlData.flags & (0x01 << 6))
                     kick();
@@ -259,50 +260,78 @@ void loop()
                 // Auto kick
                 autoKick = controlData.flags & (0x01<<4);
 
-                float speedy_mms = controlData.speed_y * MOTORS_POPUGI_TO_XY_MM_S;
-                float speedx_mms = controlData.speed_x * MOTORS_POPUGI_TO_XY_MM_S;
-                float speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
-                float speed_mms = constrain(
-                    sqrt(speedx_mms*speedx_mms + speedy_mms*speedy_mms),
-                    0,
-                    MOTORS_ROBOT_MAX_SPEED);
-                float alpha = atan2(speedx_mms, -speedy_mms);
-
-                static PIreg yawRate(Ts_s, 0.15, 0, 4);
-                static FOD yawFod(Ts_s, 1, false);
-
-                float w_feedback_rads = yawRate.tick(speedw_rads + imu.getYawRate());
-
-                float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * fabs(yawFod.tick(speed_mms));
-
-                float speed1_mms = speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
-                float speed2_mms = speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
-                float speed3_mms = speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
-
-                float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
-                // умножение быстрее деления
-                motor1.setSpeed(speed1_mms * mms2rads);
-                motor2.setSpeed(speed2_mms * mms2rads);
-                motor3.setSpeed(speed3_mms * mms2rads);
-
-                // Serial.println(
-                // //     // + " " + String(controlData.speed_x)
-                // //     // + " " + String(controlData.speed_y)
-                // //     // + " " + String(controlData.speed_w)
-                // //     // + " " + String(speedx_mms)
-                // //     // + " " + String(speedy_mms)
-                // //     // + " " + String(speedw_rads)
-                // //     + " " + String(speed_mms)
-                // //     + " " + String(alpha)
-                // //     + " " + String(speedw_wheel_mms)
-                // //     + " " + String(speed1_mms)
-                // //     + " " + String(speed2_mms)
-                // //     + " " + String(speed3_mms)
-                //     // + " " + String(time_keeper)
-                //     // + " " + String(motor1.getSpeed())
-                //     + " " + String(imu.getYawRate())
-                // );
+                speedy_mms = controlData.speed_y * MOTORS_POPUGI_TO_XY_MM_S;
+                speedx_mms = controlData.speed_x * MOTORS_POPUGI_TO_XY_MM_S;
+                speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
             }
+
+            static RateLimiter spd_lim_x(Ts_s, 400000);
+            static RateLimiter spd_lim_y(Ts_s, 400000);
+
+            float limitedx_mms = spd_lim_x.tick(speedx_mms);
+            float limitedy_mms = spd_lim_y.tick(speedy_mms);
+
+            float speed_mms = constrain(
+                sqrt(limitedx_mms*limitedx_mms + limitedy_mms*limitedy_mms),
+                0,
+                MOTORS_ROBOT_MAX_SPEED);
+            // float alpha = ang_lim.tick(
+            //     atan2(speedx_mms, -speedy_mms)
+            // );
+            float alpha = atan2(limitedx_mms, -limitedy_mms);
+
+            // static PIreg yawRate(Ts_s, 0, 1, 4);s
+            static Integrator yawRate(Ts_s);
+            static FOD yawFod(Ts_s, 0.4, false);
+
+            float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+
+            float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM; // * fabs(yawFod.tick(speed_mms));
+
+            float speed1_mms = speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
+            float speed2_mms = speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
+            float speed3_mms = speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
+
+            float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
+
+            float speed1_rads = speed1_mms * mms2rads;
+            float speed2_rads = speed2_mms * mms2rads;
+            float speed3_rads = speed3_mms * mms2rads;
+
+            float max_spd = max(max(fabs(speed1_rads), fabs(speed2_rads)), fabs(speed3_rads));
+            float scaler = 1;
+            if(max_spd > MOTORS_MAX_SPEED)
+            {
+                scaler = MOTORS_MAX_SPEED / fabs(max_spd);
+            }
+
+            // умножение быстрее деления
+            motor1.setSpeed(speed1_rads * scaler);
+            motor2.setSpeed(speed2_rads * scaler);
+            motor3.setSpeed(speed3_rads * scaler);
+
+            Serial.println(
+                + "\t" + String(speedw_rads)
+                + "\t" + String(w_feedback_rads)
+                + "\t" + String(imu.getYawRate())
+            // //     // + " " + String(controlData.speed_x)
+            // //     // + " " + String(controlData.speed_y)
+            // //     // + " " + String(controlData.speed_w)
+            // //     // + " " + String(speedx_mms)
+            // //     // + " " + String(speedy_mms)
+            // //     // + " " + String(speedw_rads)
+            // //     + " " + String(speed_mms)
+            // //     + " " + String(alpha)
+            // //     + " " + String(speedw_wheel_mms)
+            // //     + " " + String(speed1_mms)
+            // //     + " " + String(speed2_mms)
+            // //     + " " + String(speed3_mms)
+            //     // + " " + String(time_keeper)
+            //     // + " " + String(motor1.getSpeed())
+            //     + " " + String(imu.getYawRate())
+                // + " " + String(speed1_mms)
+                // + " " + String(motor1.getSpeed())
+            );
         }
         else
         {
@@ -337,10 +366,10 @@ void loop()
     // Update indicator
     indicator.update();
 
-    Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
-            + "channel: " + String(channel)
-            + "; ball sensor: " + String(ballSensor.getValue()) 
-            + "/" + String(ballSensor.getAnalogValue()));
+    // Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
+    //         + "channel: " + String(channel)
+    //         + "; ball sensor: " + String(ballSensor.getValue()) 
+    //         + "/" + String(ballSensor.getAnalogValue()));
 }
 
 // Update all input perripheral
