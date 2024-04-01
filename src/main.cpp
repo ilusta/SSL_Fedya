@@ -33,8 +33,8 @@
 
 #define BALL_SENSOR_THRESHOLD                   20     //from 0 to 1024
 
-#define KICK_TIME                               10      //Miliseconds
-#define KICK_TIMEOUT                            500     //Miliseconds
+#define KICK_TIME                               50      //Miliseconds
+#define KICK_TIMEOUT                            2000     //Miliseconds
 
 #define CONNECTION_TIMEOUT                      1000    //Miliseconds
 
