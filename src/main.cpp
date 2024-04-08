@@ -240,8 +240,24 @@ void loop()
                 speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
             }
 
-            static RateLimiter spd_lim_x(Ts_s, 400000);
-            static RateLimiter spd_lim_y(Ts_s, 400000);
+            static uint32_t t0 = millis();
+            uint32_t t = millis() - t0;
+            float x = od.getX();
+            float y = od.getY();
+            float x0 = 0.1 * ((t / 4000) % 2);
+            float y0 = 0.1 * (((t + 2000) / 4000) % 2);
+            // float x0 = 0.1*sin((millis() - t0)/1000.0);
+            // float x0 = 0;
+            // float y0 = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
+            // float y0 = 0;
+
+            speedx_mms = (x0 - x) * 6000.0;
+            speedy_mms = (y0 - y) * 6000.0;
+
+            // speedy_mms = 200*sin((millis() - t0)/1000.0);
+
+            static RateLimiter spd_lim_x(Ts_s, 1000);
+            static RateLimiter spd_lim_y(Ts_s, 1000);
 
             float limitedx_mms = spd_lim_x.tick(speedx_mms);
             float limitedy_mms = spd_lim_y.tick(speedy_mms);
