@@ -15,7 +15,8 @@
 #define MOTORS_WHEEL_RAD_MM                     25.0
 #define MOTORS_ROBOT_RAD_MM                     90.0
 
-#define MOTORS_PPR                              495     //Encoder pulses per rotation
+#define MOTORS_PPR                              48     //Encoder pulses per rotation
+#define MOTORS_GEAR_RATIO                       20.4
 #define MOTORS_PI_GAIN                          0.7
 #define MOTORS_PI_KI                            1000
 
@@ -29,3 +30,5 @@
 #define Ts_us                                   6000 /*!< sample time [microseconds]*/
 #define Ts_s                                    ((float)Ts_us * 0.000001)
 
+//////////////////////////
+#define LOG(name, val)  + String("\t") + String(name) + String(": ") + String(val)

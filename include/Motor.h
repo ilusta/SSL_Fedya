@@ -6,25 +6,57 @@
 
 #include "Tau.h"
 
-class Motor : public Updatable
+struct MotorConnectionParams
+{
+    int IN1;
+    int IN2;
+    int ENCA_PIN;
+    int ENCA_CH;
+    //
+    int ENCB_PIN;
+    int ENCB_CH;
+
+    int ENC_PPR; /*!< Pulses per rotation */
+    float i; /*!< Gear ratio */
+    //
+    float ke;
+    //
+    volatile uint8_t *ENC_PORT;
+    uint8_t ENC_MASK;
+    uint8_t ENC_SHIFT;
+};
+
+struct MotorControllerParams
+{
+    float maxU;
+    float maxSpeed;
+    float maxAccel;
+    float Ts;
+    float kp;
+    float ki;
+    float speedFilterT;
+    float maxUi; /*!< Max U change rate (derivative) */
+};
+
+class Motor : public Updatable, public MotorControllerParams, public MotorConnectionParams
 {
 public:
-    Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
-          float Ts, float gain, float ki);
+    Motor(MotorConnectionParams *mconnp, MotorControllerParams *mctrlp);
     void usePID(bool);
     /*!v Установить целевую скорость в [рад/с] */
     void setSpeed(double speed);
     void zeroAngle();
     double getAngle();
+    int getTicks();
+    int getPrevEnc() {return prevEnc;}
     double getSpeed();
     /*!v Обновить мотор. Вызывать раз в период квантования! */
     ERROR_TYPE update() override;
     void interruptHandler();
+    void interruptHandlerB();
     void applyU(float u);
 
 private:
-    int in1, in2;
-    int encB;
 
     bool usePIDFlag = true;
     PIreg piReg;
@@ -33,38 +65,43 @@ private:
     FOD spdFilter;
     RateLimiter UchangeLimiter;
 
-    int pulsesPerRotation; /*!< мб не надо нам? */
     float pulses2rad;      /*!< Коэффициент пересчета тиков в радианы */
     volatile int counter = 0;
+    int encCounter = 0;
     uint64_t timer = 0;
-    float maxSpeed, maxU;
-    float ke; /*!< Конструктивный коэффициент мотора [В/об] */
+
+    volatile uint8_t prevEnc;
+    int8_t ett[4][4] = { 0 }; /*!< Encoder transition table */
 
     float goalSpeed = 0, realSpeed = 0, angle = 0;
 };
 
 // maxSpeed in rad/second
-Motor::Motor(int in1, int in2, int encB, float maxU, float maxSpeed, float ke, int pulsesPerRotation,
-             float Ts, float gain, float ki)
-    : piReg(Ts, gain, ki, maxU),
-      spdLimiter(-maxSpeed, maxSpeed),
-      accLimiter(Ts, 9999),
-      spdFilter(Ts, Ts * 2, true),
-      UchangeLimiter(Ts, 9999 /* [V/s] */)
+Motor::Motor(MotorConnectionParams *mconnp, MotorControllerParams *mctrlp)
+    :   MotorConnectionParams(*mconnp),
+        MotorControllerParams(*mctrlp),
+        piReg(mctrlp->Ts, mctrlp->kp, mctrlp->ki, maxU),
+        spdLimiter(-mctrlp->maxSpeed, mctrlp->maxSpeed),
+        accLimiter(mctrlp->Ts, mctrlp->maxAccel),
+        spdFilter(mctrlp->Ts, mctrlp->speedFilterT, true),
+        UchangeLimiter(mctrlp->Ts, mctrlp->maxUi /* [V/s] */)
 {
-    this->in1 = in1;
-    this->in2 = in2;
-    this->encB = encB;
+    this->pulses2rad = 2.0 * M_PI / (ENC_PPR * i);
 
-    this->pulsesPerRotation = pulsesPerRotation;
-    this->pulses2rad = 2 * M_PI / pulsesPerRotation;
-    this->maxSpeed = maxSpeed;
-    this->maxU = maxU;
-    this->ke = ke;
+    ett[0b00][0b10] = 1;
+    ett[0b10][0b11] = 1;
+    ett[0b11][0b01] = 1;
+    ett[0b01][0b00] = 1;
 
-    pinMode(in1, OUTPUT);
-    pinMode(in2, OUTPUT);
-    pinMode(encB, INPUT);
+    ett[0b00][0b01] = -1;
+    ett[0b01][0b11] = -1;
+    ett[0b11][0b10] = -1;
+    ett[0b10][0b00] = -1;
+
+    pinMode(IN1, OUTPUT);
+    pinMode(IN2, OUTPUT);
+    pinMode(ENCA_PIN, INPUT);
+    pinMode(ENCB_PIN, INPUT);
 
     applyU(0);
 }
@@ -82,11 +119,12 @@ void Motor::setSpeed(double speed)
 ERROR_TYPE Motor::update()
 {
     noInterrupts();
-    float c = counter;
+    int c = counter;
     counter = 0;
     interrupts();
 
     timer = millis();
+    encCounter += c;
     angle += c * pulses2rad;
     realSpeed = spdFilter.tick(angle);
 
@@ -113,13 +151,13 @@ void Motor::applyU(float u)
 
     if (pwm >= 0)
     {
-        analogWrite(in2, 255);
-        analogWrite(in1, 255 - pwm);
+        analogWrite(IN2, 255);
+        analogWrite(IN1, 255 - pwm);
     }
     else
     {
-        analogWrite(in2, 255 + pwm);
-        analogWrite(in1, 255);
+        analogWrite(IN2, 255 + pwm);
+        analogWrite(IN1, 255);
     }
 }
 
@@ -133,6 +171,11 @@ double Motor::getAngle()
     return angle;
 }
 
+int Motor::getTicks()
+{
+    return encCounter;
+}
+
 // Returns real speed measured with encoder in rad/second
 double Motor::getSpeed()
 {
@@ -141,12 +184,7 @@ double Motor::getSpeed()
 
 void Motor::interruptHandler()
 {
-    if (digitalRead(encB) == 1)
-    {
-        counter++;
-    }
-    else
-    {
-        counter--;
-    }
+    uint8_t enc = ((*ENC_PORT) & ENC_MASK) >> ENC_SHIFT;
+    counter += ett[prevEnc][enc];
+    prevEnc = enc;
 }

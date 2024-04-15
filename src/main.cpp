@@ -21,39 +21,69 @@ Button buttonEnter(BUTTON_ENTER);
 VoltageMeter batteryVoltage(BATTERY_VOLTAGE, 5 * 2.5 / 1024.0, BATTERY_CRITICAL_VOLTAGE, 12.4);
 BallSensor ballSensor(BALL_SENSOR, BALL_SENSOR_THRESHOLD);
 Indicator indicator(INDICATOR_A, INDICATOR_B, INDICATOR_C, INDICATOR_D, INDICATOR_E, INDICATOR_F, INDICATOR_G, INDICATOR_DOT);
-Motor motor1(
-    MOTOR1_IN1,
-    MOTOR1_IN2,
-    MOTOR1_ENCB_PIN,
-    MOTORS_MAX_U,
-    MOTORS_MAX_SPEED,
-    MOTORS_KE,
-    MOTORS_PPR,
-    Ts_s,
-    MOTORS_PI_GAIN,
-    MOTORS_PI_KI);
-Motor motor2(
-    MOTOR2_IN1,
-    MOTOR2_IN2,
-    MOTOR2_ENCB_PIN,
-    MOTORS_MAX_U,
-    MOTORS_MAX_SPEED,
-    MOTORS_KE,
-    MOTORS_PPR,
-    Ts_s,
-    MOTORS_PI_GAIN,
-    MOTORS_PI_KI);
-Motor motor3(
-    MOTOR3_IN1,
-    MOTOR3_IN2,
-    MOTOR3_ENCB_PIN,
-    MOTORS_MAX_U,
-    MOTORS_MAX_SPEED,
-    MOTORS_KE,
-    MOTORS_PPR,
-    Ts_s,
-    MOTORS_PI_GAIN,
-    MOTORS_PI_KI);
+
+MotorConnectionParams mconnp1 =
+{
+    .IN1 =      MOTOR1_IN1,
+    .IN2 =      MOTOR1_IN2,
+    .ENCA_PIN = MOTOR1_ENCA_PIN,
+    .ENCA_CH =  MOTOR1_ENCA_CH,
+    .ENCB_PIN = MOTOR1_ENCB_PIN,
+    .ENCB_CH =  MOTOR1_ENCB_CH,
+    .ENC_PPR =  MOTORS_PPR,
+    .i =        MOTORS_GEAR_RATIO,
+    .ke =       MOTORS_KE,
+    .ENC_PORT = MOTOR1_ENC_PORT,
+    .ENC_MASK = MOTOR1_ENC_MASK,
+    .ENC_SHIFT= MOTOR1_ENC_SHIFT,
+};
+MotorConnectionParams mconnp2 =
+{
+    .IN1 =      MOTOR2_IN1,
+    .IN2 =      MOTOR2_IN2,
+    .ENCA_PIN = MOTOR2_ENCA_PIN,
+    .ENCA_CH =  MOTOR2_ENCA_CH,
+    .ENCB_PIN = MOTOR2_ENCB_PIN,
+    .ENCB_CH =  MOTOR2_ENCB_CH,
+    .ENC_PPR =  MOTORS_PPR,
+    .i =        MOTORS_GEAR_RATIO,
+    .ke =       MOTORS_KE,
+    .ENC_PORT = MOTOR2_ENC_PORT,
+    .ENC_MASK = MOTOR2_ENC_MASK,
+    .ENC_SHIFT= MOTOR2_ENC_SHIFT,
+};
+MotorConnectionParams mconnp3 =
+{
+    .IN1 =      MOTOR3_IN1,
+    .IN2 =      MOTOR3_IN2,
+    .ENCA_PIN = MOTOR3_ENCA_PIN,
+    .ENCA_CH =  MOTOR3_ENCA_CH,
+    .ENCB_PIN = MOTOR3_ENCB_PIN,
+    .ENCB_CH =  MOTOR3_ENCB_CH,
+    .ENC_PPR =  MOTORS_PPR,
+    .i =        MOTORS_GEAR_RATIO,
+    .ke =       MOTORS_KE,
+    .ENC_PORT = MOTOR3_ENC_PORT,
+    .ENC_MASK = MOTOR3_ENC_MASK,
+    .ENC_SHIFT= MOTOR3_ENC_SHIFT,
+};
+
+MotorControllerParams mctrlp = 
+{
+    .maxU = MOTORS_MAX_U,
+    .maxSpeed = MOTORS_MAX_SPEED,
+    .maxAccel = 9999,
+    .Ts = Ts_s,
+    .kp = MOTORS_PI_GAIN,
+    .ki = MOTORS_PI_KI,
+    .speedFilterT = 2*Ts_s,
+    .maxUi = 9999
+};
+
+Motor motor1(&mconnp1, &mctrlp);
+Motor motor2(&mconnp2, &mctrlp);
+Motor motor3(&mconnp3, &mctrlp);
+
 Kicker kicker(KICKER, KICK_TIME, KICK_TIMEOUT);
 
 NRF24 nrf(NRF_CHIP_ENABLE, NRF_CHIP_SELECT);
@@ -119,15 +149,27 @@ void setup()
     attachInterrupt(
         MOTOR1_ENCA_CH, []()
         { motor1.interruptHandler(); },
-        RISING);
+        CHANGE);
+    attachInterrupt(
+        MOTOR1_ENCB_CH, []()
+        { motor1.interruptHandler(); },
+        CHANGE);
     attachInterrupt(
         MOTOR2_ENCA_CH, []()
         { motor2.interruptHandler(); },
-        RISING);
+        CHANGE);
+    attachInterrupt(
+        MOTOR2_ENCB_CH, []()
+        { motor2.interruptHandler(); },
+        CHANGE);
     attachInterrupt(
         MOTOR3_ENCA_CH, []()
         { motor3.interruptHandler(); },
-        RISING);
+        CHANGE);
+    attachInterrupt(
+        MOTOR3_ENCB_CH, []()
+        { motor3.interruptHandler(); },
+        CHANGE);
     // Enable PID speed control for all motors
     motor1.usePID(true);
     motor2.usePID(true);
@@ -362,9 +404,12 @@ void loop()
             // + "channel: " + String(channel)
             // + "; ball sensor: " + String(ballSensor.getValue()) 
             // + "/" + String(ballSensor.getAnalogValue())
-            + " x = " + String(od.getX())
-            + " y = " + String(od.getY())
-            + " theta = " + String(od.getTheta()));
+            // + " x = " + String(od.getX())
+            // + " y = " + String(od.getY())
+            // + " theta = " + String(od.getTheta())
+            LOG("m1 ticks", motor1.getTicks())
+            LOG("m1 angle", motor1.getAngle())
+        );
 }
 
 // Update all input perripheral

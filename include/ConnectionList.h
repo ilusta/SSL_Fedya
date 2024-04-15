@@ -34,6 +34,9 @@
 #define MOTOR1_ENCA_CH      0
 #define MOTOR1_ENCB_PIN     3
 #define MOTOR1_ENCB_CH      1
+#define MOTOR1_ENC_PORT     &PINE
+#define MOTOR1_ENC_MASK     0b00110000
+#define MOTOR1_ENC_SHIFT    4
 
 #define MOTOR2_IN1          6
 #define MOTOR2_IN2          7
@@ -41,6 +44,9 @@
 #define MOTOR2_ENCA_CH      5
 #define MOTOR2_ENCB_PIN     19
 #define MOTOR2_ENCB_CH      4
+#define MOTOR2_ENC_PORT     &PIND
+#define MOTOR2_ENC_MASK     0b00001100
+#define MOTOR2_ENC_SHIFT    2
 
 #define MOTOR3_IN1          8
 #define MOTOR3_IN2          9
@@ -48,6 +54,9 @@
 #define MOTOR3_ENCA_CH      3
 #define MOTOR3_ENCB_PIN     21
 #define MOTOR3_ENCB_CH      2
+#define MOTOR3_ENC_PORT     &PIND
+#define MOTOR3_ENC_MASK     0b00000011
+#define MOTOR3_ENC_SHIFT    0
 
 
 //------------------------KICKER---------------------------
