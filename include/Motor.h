@@ -68,6 +68,7 @@ private:
     RateLimiter UchangeLimiter;
 
     float pulses2rad;      /*!< Коэффициент пересчета тиков в радианы */
+    int8_t motorDir;
     volatile int counter = 0;
     int encCounter = 0;
     uint64_t timer = 0;
@@ -89,6 +90,7 @@ Motor::Motor(MotorConnectionParams *mconnp, MotorControllerParams *mctrlp)
         UchangeLimiter(mctrlp->Ts, mctrlp->maxUi /* [V/s] */)
 {
     this->pulses2rad = 2.0 * M_PI / (ENC_PPR * i);
+    motorDir = this->pulses2rad > 0 ? 1 : -1;
 
     ett[0b00][0b10] = ENC_DIR;
     ett[0b10][0b11] = ENC_DIR;
@@ -104,6 +106,7 @@ Motor::Motor(MotorConnectionParams *mconnp, MotorControllerParams *mctrlp)
     pinMode(IN2, OUTPUT);
     pinMode(ENCA_PIN, INPUT);
     pinMode(ENCB_PIN, INPUT);
+
 
     applyU(0);
 }
@@ -142,6 +145,7 @@ ERROR_TYPE Motor::update()
 // speed in rad/second
 void Motor::applyU(float u)
 {
+    u *= motorDir;
     if(u == constrain(u, -moveU, moveU))
     {
         u = 0;
