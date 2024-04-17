@@ -24,6 +24,7 @@ struct MotorConnectionParams
     volatile uint8_t *ENC_PORT;
     uint8_t ENC_MASK;
     uint8_t ENC_SHIFT;
+    int8_t ENC_DIR;
 };
 
 struct MotorControllerParams
@@ -88,15 +89,15 @@ Motor::Motor(MotorConnectionParams *mconnp, MotorControllerParams *mctrlp)
 {
     this->pulses2rad = 2.0 * M_PI / (ENC_PPR * i);
 
-    ett[0b00][0b10] = 1;
-    ett[0b10][0b11] = 1;
-    ett[0b11][0b01] = 1;
-    ett[0b01][0b00] = 1;
+    ett[0b00][0b10] = ENC_DIR;
+    ett[0b10][0b11] = ENC_DIR;
+    ett[0b11][0b01] = ENC_DIR;
+    ett[0b01][0b00] = ENC_DIR;
 
-    ett[0b00][0b01] = -1;
-    ett[0b01][0b11] = -1;
-    ett[0b11][0b10] = -1;
-    ett[0b10][0b00] = -1;
+    ett[0b00][0b01] = -ENC_DIR;
+    ett[0b01][0b11] = -ENC_DIR;
+    ett[0b11][0b10] = -ENC_DIR;
+    ett[0b10][0b00] = -ENC_DIR;
 
     pinMode(IN1, OUTPUT);
     pinMode(IN2, OUTPUT);

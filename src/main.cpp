@@ -11,7 +11,6 @@
 #include "NRF24.h"
 #include "Kicker.h"
 #include "IMU.h"
-#include "Fast.h"
 #include "Odometry.h"
 #include "Defines.h"
 
@@ -36,6 +35,7 @@ MotorConnectionParams mconnp1 =
     .ENC_PORT = MOTOR1_ENC_PORT,
     .ENC_MASK = MOTOR1_ENC_MASK,
     .ENC_SHIFT= MOTOR1_ENC_SHIFT,
+    .ENC_DIR =  MOTOR1_ENC_DIR,
 };
 MotorConnectionParams mconnp2 =
 {
@@ -51,6 +51,7 @@ MotorConnectionParams mconnp2 =
     .ENC_PORT = MOTOR2_ENC_PORT,
     .ENC_MASK = MOTOR2_ENC_MASK,
     .ENC_SHIFT= MOTOR2_ENC_SHIFT,
+    .ENC_DIR =  MOTOR2_ENC_DIR,
 };
 MotorConnectionParams mconnp3 =
 {
@@ -66,6 +67,7 @@ MotorConnectionParams mconnp3 =
     .ENC_PORT = MOTOR3_ENC_PORT,
     .ENC_MASK = MOTOR3_ENC_MASK,
     .ENC_SHIFT= MOTOR3_ENC_SHIFT,
+    .ENC_DIR =  MOTOR3_ENC_DIR,
 };
 
 MotorControllerParams mctrlp = 
@@ -286,17 +288,28 @@ void loop()
             uint32_t t = millis() - t0;
             float x = od.getX();
             float y = od.getY();
-            float x0 = 0.1 * ((t / 4000) % 2);
-            float y0 = 0.1 * (((t + 2000) / 4000) % 2);
+            float theta = od.getTheta();
+
+            // float x0 = 0.2 * ((t / 4000) % 2);
+            // float y0 = 0.2 * (((t + 2000) / 4000) % 2);
+            // float theta0 = 1.5 * sin((millis() - t0)/1000.0);
+            float theta0 = M_PI * (((t + 2000) / 4000) % 2);
             // float x0 = 0.1*sin((millis() - t0)/1000.0);
-            // float x0 = 0;
+            float x0 = 0;
             // float y0 = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
-            // float y0 = 0;
+            float y0 = 0;
+            // float theta0 = 0;
 
-            speedx_mms = (x0 - x) * 6000.0;
-            speedy_mms = (y0 - y) * 6000.0;
+            // speedx_mms = (x0 - x) * 4000.0;
+            // speedy_mms = (y0 - y) * 4000.0;
+            // speedy_mms = 0;
+            speedw_rads = (theta0 - theta) * 8;
 
-            // speedy_mms = 200*sin((millis() - t0)/1000.0);
+            speedw_rads = constrain(speedw_rads, -2, 2);
+
+            // speedw_rads = 1;
+            
+            // speedx_mms = 200*sin((millis() - t0)/1000.0);
 
             static RateLimiter spd_lim_x(Ts_s, 1000);
             static RateLimiter spd_lim_y(Ts_s, 1000);
@@ -313,17 +326,18 @@ void loop()
             // );
             float alpha = atan2(limitedx_mms, -limitedy_mms);
 
-            // static PIreg yawRate(Ts_s, 0, 1, 4);s
+            // static PIreg yawRate(Ts_s, 0, 1, 4);
             static Integrator yawRate(Ts_s);
             static FOD yawFod(Ts_s, 0.4, false);
 
-            float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+            // float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+            float w_feedback_rads = 0;
 
             float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM; // * fabs(yawFod.tick(speed_mms));
 
-            float speed1_mms = speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
-            float speed2_mms = speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
-            float speed3_mms = speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
+            float speed1_mms = - speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
+            float speed2_mms = - speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
+            float speed3_mms = - speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
 
             float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
 
@@ -343,27 +357,28 @@ void loop()
             motor2.setSpeed(speed2_rads * scaler);
             motor3.setSpeed(speed3_rads * scaler);
 
-            // Serial.println(
+            // Serial.print(
             //     + "\t" + String(speedw_rads)
             //     + "\t" + String(w_feedback_rads)
-            //     + "\t" + String(imu.getYawRate())
-            // //     // + " " + String(controlData.speed_x)
-            // //     // + " " + String(controlData.speed_y)
-            // //     // + " " + String(controlData.speed_w)
-            // //     // + " " + String(speedx_mms)
-            // //     // + " " + String(speedy_mms)
-            // //     // + " " + String(speedw_rads)
-            // //     + " " + String(speed_mms)
-            // //     + " " + String(alpha)
-            // //     + " " + String(speedw_wheel_mms)
-            // //     + " " + String(speed1_mms)
-            // //     + " " + String(speed2_mms)
-            // //     + " " + String(speed3_mms)
+            //     // + "\t" + String(imu.getYawRate())
+            //     // + " " + String(controlData.speed_x)
+            //     // + " " + String(controlData.speed_y)
+            //     // + " " + String(controlData.speed_w)
+            //     // + " " + String(speedx_mms)
+            //     // + " " + String(speedy_mms)
+            //     // + " " + String(speedw_rads)
+            //     // + " " + String(speed_mms)
+            //     // + " " + String(alpha)
+            //     + " " + String(speedw_wheel_mms)
+            //     + " " + String(speed1_mms)
+            //     + " " + String(speed2_mms)
+            //     + " " + String(speed3_mms)
             //     // + " " + String(time_keeper)
             //     // + " " + String(motor1.getSpeed())
-            //     + " " + String(imu.getYawRate())
-                // + " " + String(speed1_mms)
-                // + " " + String(motor1.getSpeed())
+            //     // + " " + String(imu.getYawRate())
+            //     // + " " + String(speed1_mms)
+            //     // + " " + String(motor1.getSpeed())
+            //     + "   "
             // );
         }
         else
@@ -398,17 +413,18 @@ void loop()
     }
     // Update indicator
     indicator.update();
-    od.tick();
+    od.tick(imu.getYawRate());
 
     Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
-            // + "channel: " + String(channel)
-            // + "; ball sensor: " + String(ballSensor.getValue()) 
-            // + "/" + String(ballSensor.getAnalogValue())
-            // + " x = " + String(od.getX())
-            // + " y = " + String(od.getY())
-            // + " theta = " + String(od.getTheta())
-            LOG("m1 ticks", motor1.getTicks())
-            LOG("m1 angle", motor1.getAngle())
+            // // + "channel: " + String(channel)
+            // // + "; ball sensor: " + String(ballSensor.getValue()) 
+            // // + "/" + String(ballSensor.getAnalogValue())
+            + " x = " + String(od.getX())
+            + " y = " + String(od.getY())
+            + " theta = " + String(od.getTheta())
+            // // LOG("m1 ticks", motor1.getTicks())
+            // // LOG("m1 angle", motor1.getAngle())
+            // LOG("m1 vel", motor1.getSpeed())
         );
 }
 
