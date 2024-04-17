@@ -24,7 +24,7 @@
 #define MOTORS_ROBOT_RAD_MM                     82.0
 
 #define MOTORS_PPR                              48     //Encoder pulses per rotation
-#define MOTORS_GEAR_RATIO                       20.4
+#define MOTORS_GEAR_RATIO                       -45
 #define MOTORS_TIME_CONSTANT                    0.030
 #define MOTORS_Tu                               Ts_s
 #define MOTORS_ABS_OPTIMUM_SETTING              2.0
