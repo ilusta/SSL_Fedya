@@ -73,6 +73,7 @@ MotorConnectionParams mconnp3 =
 MotorControllerParams mctrlp = 
 {
     .maxU = MOTORS_MAX_U,
+    .moveU = MOTORS_MOVE_U,
     .maxSpeed = MOTORS_MAX_SPEED,
     .maxAccel = 9999,
     .Ts = Ts_s,

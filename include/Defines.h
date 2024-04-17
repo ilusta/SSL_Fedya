@@ -10,6 +10,7 @@
 #define MOTORS_ROBOT_MAX_SPEED                  1500 /*!< [mm/s] */
 
 #define MOTORS_MAX_U                            12.0 /*!< [V] */
+#define MOTORS_MOVE_U                           2  /*!< [V] */
 #define MOTORS_MAX_SPEED                        30.0     //rad/second
 #define MOTORS_KE                               0.185   /*!< [V/rad/s] */
 

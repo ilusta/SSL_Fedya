@@ -30,6 +30,7 @@ struct MotorConnectionParams
 struct MotorControllerParams
 {
     float maxU;
+    float moveU;
     float maxSpeed;
     float maxAccel;
     float Ts;
@@ -141,6 +142,11 @@ ERROR_TYPE Motor::update()
 // speed in rad/second
 void Motor::applyU(float u)
 {
+    if(u == constrain(u, -moveU, moveU))
+    {
+        u = 0;
+    }
+
     float slowed_u = UchangeLimiter.tick(u);
     // float slowed_u = u;
     int pwm = slowed_u / maxU * 255;
