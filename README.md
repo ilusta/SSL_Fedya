@@ -31,3 +31,9 @@ Ball sensor status is shown on blue LED. Ball sensor threshold is configured by 
 
 ## TODO:
 
+
+## Sources:
+
+Three wheel omni-robot kinematics
+https://core.ac.uk/download/pdf/235049981.pdf
+

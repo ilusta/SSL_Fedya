@@ -51,7 +51,7 @@ public:
     float getY() { return y.get_val(); }
     float getTheta() { return theta.get_val(); }
 
-    void tick()
+    void tick(float gyro_w)
     {
         float w1 = m1->getSpeed();
         float w2 = m2->getSpeed();
@@ -65,9 +65,15 @@ public:
 
     void get_derivatives(float w1, float w2, float w3, float &x_i, float &y_i, float &theta_i)
     {
-        x_i = r * (w1*sina2 - w1*sina3 + w2*sina3 - w3*sina2) * den_1;
-        y_i = r * (w2 - w3 - w1*cosa2 + w1*cosa3 - w2*cosa3 + w3*cosa2) * den_1;
-        theta_i = r/R * (w2*sina3 - w3*sina2 + w1*sina2_a3) * den_1;
+        float sint = sin(theta.get_val());
+        float cost = cos(theta.get_val());
+
+        float xl_i = r * (w1*sina2 - w1*sina3 + w2*sina3 - w3*sina2) * den_1;
+        float yl_i = r * (w2 - w3 - w1*cosa2 + w1*cosa3 - w2*cosa3 + w3*cosa2) * den_1;
+
+        x_i = cost*xl_i - sint*yl_i;
+        y_i = sint*xl_i + cost*yl_i;        
+        theta_i = - r/R * (w2*sina3 - w3*sina2 + w1*sina2_a3) * den_1;
     }
 };
 

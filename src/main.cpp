@@ -13,6 +13,7 @@
 #include "IMU.h"
 #include "Odometry.h"
 #include "Defines.h"
+#include "BasicLinearAlgebra.h"
 
 Button buttonChannelPlus(BUTTON_CHANEL_PLUS);
 Button buttonChannelMinus(BUTTON_CHANEL_MINUS);
@@ -132,6 +133,7 @@ uint32_t connectionTimer = 0;
 ERROR_TYPE updateIN();
 ERROR_TYPE updateOUT();
 void kick();
+void control_loop();
 
 void setup()
 {
@@ -255,6 +257,7 @@ void loop()
         indicator.printL(); // Low battery warning
     if (batteryVoltage.getVoltage() > BATTERY_CRITICAL_VOLTAGE)
         lowBatteryTimer = millis();
+
     if (millis() - lowBatteryTimer < BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME)
     { // Move disabled if battery was criticaly low for some time
 
@@ -285,102 +288,7 @@ void loop()
                 speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
             }
 
-            static uint32_t t0 = millis();
-            uint32_t t = millis() - t0;
-            float x = od.getX();
-            float y = od.getY();
-            float theta = od.getTheta();
-
-            // float x0 = 0.2 * ((t / 4000) % 2);
-            // float y0 = 0.2 * (((t + 2000) / 4000) % 2);
-            // float theta0 = 1.5 * sin((millis() - t0)/1000.0);
-            float theta0 = M_PI * (((t + 2000) / 4000) % 2);
-            // float x0 = 0.1*sin((millis() - t0)/1000.0);
-            float x0 = 0;
-            // float y0 = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
-            float y0 = 0;
-            // float theta0 = 0;
-
-            // speedx_mms = (x0 - x) * 4000.0;
-            // speedy_mms = (y0 - y) * 4000.0;
-            // speedy_mms = 0;
-            speedw_rads = (theta0 - theta) * 8;
-
-            speedw_rads = constrain(speedw_rads, -2, 2);
-
-            // speedw_rads = 1;
-            
-            // speedx_mms = 200*sin((millis() - t0)/1000.0);
-
-            static RateLimiter spd_lim_x(Ts_s, 1000);
-            static RateLimiter spd_lim_y(Ts_s, 1000);
-
-            float limitedx_mms = spd_lim_x.tick(speedx_mms);
-            float limitedy_mms = spd_lim_y.tick(speedy_mms);
-
-            float speed_mms = constrain(
-                sqrt(limitedx_mms*limitedx_mms + limitedy_mms*limitedy_mms),
-                0,
-                MOTORS_ROBOT_MAX_SPEED);
-            // float alpha = ang_lim.tick(
-            //     atan2(speedx_mms, -speedy_mms)
-            // );
-            float alpha = atan2(limitedx_mms, -limitedy_mms);
-
-            // static PIreg yawRate(Ts_s, 0, 1, 4);
-            static Integrator yawRate(Ts_s);
-            static FOD yawFod(Ts_s, 0.4, false);
-
-            // float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
-            float w_feedback_rads = 0;
-
-            float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM; // * fabs(yawFod.tick(speed_mms));
-
-            float speed1_mms = - speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
-            float speed2_mms = - speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
-            float speed3_mms = - speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
-
-            float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
-
-            float speed1_rads = speed1_mms * mms2rads;
-            float speed2_rads = speed2_mms * mms2rads;
-            float speed3_rads = speed3_mms * mms2rads;
-
-            float max_spd = max(max(fabs(speed1_rads), fabs(speed2_rads)), fabs(speed3_rads));
-            float scaler = 1;
-            if(max_spd > MOTORS_MAX_SPEED)
-            {
-                scaler = MOTORS_MAX_SPEED / fabs(max_spd);
-            }
-
-            // умножение быстрее деления
-            motor1.setSpeed(speed1_rads * scaler);
-            motor2.setSpeed(speed2_rads * scaler);
-            motor3.setSpeed(speed3_rads * scaler);
-
-            // Serial.print(
-            //     + "\t" + String(speedw_rads)
-            //     + "\t" + String(w_feedback_rads)
-            //     // + "\t" + String(imu.getYawRate())
-            //     // + " " + String(controlData.speed_x)
-            //     // + " " + String(controlData.speed_y)
-            //     // + " " + String(controlData.speed_w)
-            //     // + " " + String(speedx_mms)
-            //     // + " " + String(speedy_mms)
-            //     // + " " + String(speedw_rads)
-            //     // + " " + String(speed_mms)
-            //     // + " " + String(alpha)
-            //     + " " + String(speedw_wheel_mms)
-            //     + " " + String(speed1_mms)
-            //     + " " + String(speed2_mms)
-            //     + " " + String(speed3_mms)
-            //     // + " " + String(time_keeper)
-            //     // + " " + String(motor1.getSpeed())
-            //     // + " " + String(imu.getYawRate())
-            //     // + " " + String(speed1_mms)
-            //     // + " " + String(motor1.getSpeed())
-            //     + "   "
-            // );
+            control_loop();
         }
         else
         {
@@ -414,7 +322,6 @@ void loop()
     }
     // Update indicator
     indicator.update();
-    od.tick(imu.getYawRate());
 
     Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
             // // + "channel: " + String(channel)
@@ -461,4 +368,92 @@ ERROR_TYPE updateOUT()
 void kick()
 {
     kicker.kick();
+}
+
+void control_loop()
+{
+    static float speedy_mms = 0, speedx_mms = 0, speedw_rads = 0;
+
+    static uint32_t t0 = millis();
+    uint32_t t = millis() - t0;
+    float x_0_G_mm = 200 * ((t / 4000) % 2);
+    float y_0_G_mm = 200 * (((t + 2000) / 4000) % 2);
+    // float theta0 = 1.5 * sin((millis() - t0)/1000.0);
+    float theta0 = M_PI * (((t + 4000) / 8000) % 2);
+    // float x_0_G_mm = 0.1*sin((millis() - t0)/1000.0);
+    // float x_0_G_mm = 0;
+    // float y_0_G_mm = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
+    // float y_0_G_mm = 0;
+    // float theta0 = M_PI_2/2.0;
+
+
+    // Position control loop
+
+    BLA::Matrix<2> pos_0_G_mm = {x_0_G_mm, y_0_G_mm};
+    BLA::Matrix<2> pos_G_m = {od.getX(), od.getY()};
+    BLA::Matrix<2> pos_G_mm = pos_G_m * BLA::Matrix<1>(1000);
+
+    BLA::Matrix<2> pos_err_G_mm = pos_0_G_mm - pos_G_mm;
+
+    static float constexpr pos_Tu = 0.15;
+    static float constexpr pos_K = 1/(2*pos_Tu);
+
+    BLA::Matrix<2> pos_u_G_mm_s = pos_err_G_mm * pos_K;
+
+    float theta = od.getTheta();
+    BLA::Matrix<2,2> R = {cos(-theta), -sin(-theta), sin(-theta), cos(-theta)};
+
+    BLA::Matrix<2> pos_u_L_mm_s = R*pos_u_G_mm_s;
+
+    speedx_mms = pos_u_L_mm_s(0);
+    speedy_mms = pos_u_L_mm_s(1);
+
+
+    // Angle control loop
+    speedw_rads = (theta0 - theta) * 8;
+    speedw_rads = constrain(speedw_rads, -4, 4);
+
+
+    static RateLimiter spd_lim_x(Ts_s, 1000);
+    static RateLimiter spd_lim_y(Ts_s, 1000);
+
+    float limitedx_mms = spd_lim_x.tick(speedx_mms);
+    float limitedy_mms = spd_lim_y.tick(speedy_mms);
+
+    float speed_mms = constrain(
+        sqrt(limitedx_mms*limitedx_mms + limitedy_mms*limitedy_mms),
+        0,
+        MOTORS_ROBOT_MAX_SPEED);
+    float alpha = atan2(limitedx_mms, -limitedy_mms);
+
+    static Integrator yawRate(Ts_s);
+
+    // float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+    float w_feedback_rads = 0;
+
+    float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM;
+
+    float speed1_mms = - speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
+    float speed2_mms = - speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
+    float speed3_mms = - speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
+
+    float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
+    float speed1_rads = speed1_mms * mms2rads;
+    float speed2_rads = speed2_mms * mms2rads;
+    float speed3_rads = speed3_mms * mms2rads;
+
+
+    float max_spd = max(max(fabs(speed1_rads), fabs(speed2_rads)), fabs(speed3_rads));
+    float scaler = 1;
+    if(max_spd > MOTORS_MAX_SPEED)
+    {
+        scaler = MOTORS_MAX_SPEED / fabs(max_spd);
+    }
+
+    // умножение быстрее деления
+    motor1.setSpeed(speed1_rads * scaler);
+    motor2.setSpeed(speed2_rads * scaler);
+    motor3.setSpeed(speed3_rads * scaler);
+
+    od.tick(imu.getYawRate());
 }
