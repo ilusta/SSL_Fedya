@@ -133,6 +133,26 @@ uint32_t connectionTimer = 0;
 ERROR_TYPE updateIN();
 ERROR_TYPE updateOUT();
 void kick();
+
+enum ControlMode
+{
+    velocity,
+    position
+} controlMode;
+
+struct Targets
+{
+    // Velocity control
+    float xi_0_G_mm_s;
+    float yi_0_G_mm_s;
+    float w_0_G_rad_s;
+
+    // Position control
+    float x_0_G_mm;
+    float y_0_G_mm;
+    float theta_0_G_rad;
+} targets;
+
 void control_loop();
 
 void setup()
@@ -272,20 +292,50 @@ void loop()
         // Remote control
         if (millis() - connectionTimer < CONNECTION_TIMEOUT)
         {
-            static float speedy_mms = 0, speedx_mms = 0, speedw_rads = 0;
-
             if (channel == controlData.op_addr - 16)
             {
-                // Kick
-                if (controlData.flags & (0x01 << 6))
-                    kick();
+                switch (controlData.packet_id)
+                {
+                case 0:
+                    // Kick
+                    if (controlData.p0.flags & (0x01 << 6))
+                        kick();
 
-                // Auto kick
-                autoKick = controlData.flags & (0x01<<4);
+                    // Auto kick
+                    autoKick = controlData.p0.flags & (0x01<<4);
 
-                speedy_mms = controlData.speed_y * MOTORS_POPUGI_TO_XY_MM_S;
-                speedx_mms = controlData.speed_x * MOTORS_POPUGI_TO_XY_MM_S;
-                speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
+                    targets.yi_0_G_mm_s = controlData.p0.target_yi * MOTORS_POPUGI_TO_XY_MM_S;
+                    targets.xi_0_G_mm_s = controlData.p0.target_xi * MOTORS_POPUGI_TO_XY_MM_S;
+                    targets.w_0_G_rad_s = controlData.p0.target_w * MOTORS_POPUGI_TO_W_RAD_S;
+                    
+                    controlMode = velocity;
+                    break;
+                case 1:
+                    // Kick
+                    if (controlData.p0.flags & (0x01 << 6))
+                        kick();
+
+                    // Auto kick
+                    autoKick = controlData.p0.flags & (0x01<<4);
+                    
+                    od.setAugment(
+                        controlData.p1.real_x * MOTORS_POPUGI_TO_XY_MM,
+                        controlData.p1.real_y * MOTORS_POPUGI_TO_XY_MM,
+                        controlData.p1.real_theta * MOTORS_POPUGI_TO_W_RAD
+                    );
+                    break;
+                
+                case 2:
+                    targets.x_0_G_mm = controlData.p2.target_x * MOTORS_POPUGI_TO_XY_MM;
+                    targets.y_0_G_mm = controlData.p2.target_y * MOTORS_POPUGI_TO_XY_MM;
+                    targets.theta_0_G_rad = controlData.p2.target_theta * MOTORS_POPUGI_TO_W_RAD;
+                    
+                    controlMode = position;
+                    break;
+                
+                default:
+                    break;
+                }
             }
 
             control_loop();
@@ -329,7 +379,7 @@ void loop()
             // // + "/" + String(ballSensor.getAnalogValue())
             + " x = " + String(od.getX())
             + " y = " + String(od.getY())
-            + " theta = " + String(od.getTheta())
+            + " theta_G_rad = " + String(od.getTheta())
             // // LOG("m1 ticks", motor1.getTicks())
             // // LOG("m1 angle", motor1.getAngle())
             // LOG("m1 vel", motor1.getSpeed())
@@ -372,53 +422,40 @@ void kick()
 
 void control_loop()
 {
-    static float speedy_mms = 0, speedx_mms = 0, speedw_rads = 0;
+    if(controlMode == position)
+    {
+        // Position control loop
+        BLA::Matrix<2> pos_0_G_mm = {targets.x_0_G_mm, targets.y_0_G_mm};
+        BLA::Matrix<2> pos_G_m = {od.getX(), od.getY()};
+        BLA::Matrix<2> pos_G_mm = pos_G_m * BLA::Matrix<1>(1000);
 
-    static uint32_t t0 = millis();
-    uint32_t t = millis() - t0;
-    float x_0_G_mm = 200 * ((t / 4000) % 2);
-    float y_0_G_mm = 200 * (((t + 2000) / 4000) % 2);
-    // float theta0 = 1.5 * sin((millis() - t0)/1000.0);
-    float theta0 = M_PI * (((t + 4000) / 8000) % 2);
-    // float x_0_G_mm = 0.1*sin((millis() - t0)/1000.0);
-    // float x_0_G_mm = 0;
-    // float y_0_G_mm = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
-    // float y_0_G_mm = 0;
-    // float theta0 = M_PI_2/2.0;
+        BLA::Matrix<2> pos_err_G_mm = pos_0_G_mm - pos_G_mm;
 
+        static float constexpr pos_Tu = 0.15;
+        static float constexpr pos_K = 1/(2*pos_Tu);
 
-    // Position control loop
+        BLA::Matrix<2> pos_u_G_mm_s = pos_err_G_mm * pos_K;
 
-    BLA::Matrix<2> pos_0_G_mm = {x_0_G_mm, y_0_G_mm};
-    BLA::Matrix<2> pos_G_m = {od.getX(), od.getY()};
-    BLA::Matrix<2> pos_G_mm = pos_G_m * BLA::Matrix<1>(1000);
+        float theta_G_rad = od.getTheta();
+        BLA::Matrix<2,2> R = {cos(-theta_G_rad), -sin(-theta_G_rad), sin(-theta_G_rad), cos(-theta_G_rad)};
 
-    BLA::Matrix<2> pos_err_G_mm = pos_0_G_mm - pos_G_mm;
+        BLA::Matrix<2> pos_u_L_mm_s = R*pos_u_G_mm_s;
 
-    static float constexpr pos_Tu = 0.15;
-    static float constexpr pos_K = 1/(2*pos_Tu);
+        targets.xi_0_G_mm_s = pos_u_L_mm_s(0);
+        targets.yi_0_G_mm_s = pos_u_L_mm_s(1);
 
-    BLA::Matrix<2> pos_u_G_mm_s = pos_err_G_mm * pos_K;
+        // Angle control loop
+        targets.w_0_G_rad_s = (targets.theta_0_G_rad - theta_G_rad) * 8;
+        targets.w_0_G_rad_s = constrain(targets.w_0_G_rad_s, -4, 4);
+    }
 
-    float theta = od.getTheta();
-    BLA::Matrix<2,2> R = {cos(-theta), -sin(-theta), sin(-theta), cos(-theta)};
-
-    BLA::Matrix<2> pos_u_L_mm_s = R*pos_u_G_mm_s;
-
-    speedx_mms = pos_u_L_mm_s(0);
-    speedy_mms = pos_u_L_mm_s(1);
-
-
-    // Angle control loop
-    speedw_rads = (theta0 - theta) * 8;
-    speedw_rads = constrain(speedw_rads, -4, 4);
-
-
+    ////////////////////////////
+    // Velocity control loop
     static RateLimiter spd_lim_x(Ts_s, 1000);
     static RateLimiter spd_lim_y(Ts_s, 1000);
 
-    float limitedx_mms = spd_lim_x.tick(speedx_mms);
-    float limitedy_mms = spd_lim_y.tick(speedy_mms);
+    float limitedx_mms = spd_lim_x.tick(targets.xi_0_G_mm_s);
+    float limitedy_mms = spd_lim_y.tick(targets.yi_0_G_mm_s);
 
     float speed_mms = constrain(
         sqrt(limitedx_mms*limitedx_mms + limitedy_mms*limitedy_mms),
@@ -431,7 +468,7 @@ void control_loop()
     // float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
     float w_feedback_rads = 0;
 
-    float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM;
+    float speedw_wheel_mms = targets.w_0_G_rad_s * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM;
 
     float speed1_mms = - speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
     float speed2_mms = - speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;

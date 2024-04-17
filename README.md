@@ -31,9 +31,21 @@ Ball sensor status is shown on blue LED. Ball sensor threshold is configured by 
 
 ## TODO:
 
+## D2 for diagrams
+
+> https://github.com/terrastruct/d2
+
+Install:
+```
+curl -fsSL https://d2lang.com/install.sh | sh -s --
+```
+
+Uninstall:
+```
+curl -fsSL https://d2lang.com/install.sh | sh -s -- --uninstall
+```
 
 ## Sources:
 
 Three wheel omni-robot kinematics
 https://core.ac.uk/download/pdf/235049981.pdf
-

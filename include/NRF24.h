@@ -9,12 +9,42 @@
 
 struct data
 {
-  uint8_t op_addr;
-  int8_t speed_x;
-  int8_t speed_y;
-  int8_t speed_w;
-  uint8_t voltage;
-  uint8_t flags;
+  union
+  {
+    uint8_t raw[6];
+    struct
+    {
+      uint8_t packet_id : 3;
+      uint8_t op_addr : 5;
+    };
+    struct
+    {
+      uint8_t op_addr_byte;
+      int8_t target_xi;
+      int8_t target_yi;
+      int8_t target_w;
+      uint8_t kicker_voltage;
+      uint8_t flags;
+    } p0;
+    struct
+    {
+      uint8_t op_addr_byte;
+      int8_t real_x;
+      int8_t real_y;
+      int8_t real_theta;
+      uint8_t kicker_voltage;
+      uint8_t flags;
+    } p1;
+    struct
+    {
+      uint8_t op_addr_byte;
+      int8_t target_x;
+      int8_t target_y;
+      int8_t target_theta;
+      int8_t target_xi;
+      int8_t target_yi;
+    } p2;
+  };
 };
 
 class NRF24 : public Updatable
@@ -63,13 +93,10 @@ public:
 
       byte recv[6];
       rad.read(&recv, sizeof(recv));
-      dataPackage.op_addr = recv[0];
-      dataPackage.speed_x = recv[1];
-      dataPackage.speed_y = recv[2];
-      dataPackage.speed_w = recv[3];
-      dataPackage.voltage = recv[4];
-      dataPackage.flags = recv[5];
-      // Serial.println(recv[5]);
+      for(size_t i = 0; i < 6; i++)
+      {
+        dataPackage.raw[i] = recv[i];
+      }
 
       availableFlag = true;
     }

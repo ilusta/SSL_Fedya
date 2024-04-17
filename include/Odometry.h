@@ -34,22 +34,36 @@ class Odometry
 {
 protected:
 
-    Integrator x, y, theta;
+    Integrator x_G_m, y_G_m, theta_G_rad;
+    float x_aug_G_m, y_aug_G_m, theta_aug_G_rad;
     float x_i, y_i, theta_i;
     Motor *m1, *m2, *m3;
     float Ts;
 
+    float comp_a = 0.1;
+
 public:
-    Odometry(float Ts, Motor *m1, Motor *m2, Motor *m3) : x(Ts), y(Ts), theta(Ts)
+    Odometry(float Ts, Motor *m1, Motor *m2, Motor *m3) : x_G_m(Ts), y_G_m(Ts), theta_G_rad(Ts)
     {
         this->m1 = m2;
         this->m2 = m3;
         this->m3 = m1;
     }
 
-    float getX() { return x.get_val(); }
-    float getY() { return y.get_val(); }
-    float getTheta() { return theta.get_val(); }
+    float getX() { return x_G_m.get_val(); }
+    float getY() { return y_G_m.get_val(); }
+    float getTheta() { return theta_G_rad.get_val(); }
+
+    void setAugment(float x_aug_G_mm, float y_aug_G_mm, float theta_aug_G_rad)
+    {
+        x_aug_G_m = x_aug_G_mm * 0.001;
+        y_aug_G_m = y_aug_G_mm * 0.001;
+        this->theta_aug_G_rad = theta_aug_G_rad;
+    }
+
+    void augmentX() { x_G_m.set(x_G_m.get_val() * (1-comp_a) + x_aug_G_m * 0.001 * comp_a); }
+    void augmentY() { y_G_m.set(y_G_m.get_val() * (1-comp_a) + y_aug_G_m * 0.001 * comp_a); }
+    void augmentTheta() { theta_G_rad.set(theta_G_rad.get_val() * (1-comp_a) + theta_aug_G_rad * comp_a); }
 
     void tick(float gyro_w)
     {
@@ -58,15 +72,18 @@ public:
         float w3 = m3->getSpeed();
 
         get_derivatives(w1, w2, w3, x_i, y_i, theta_i);
-        x.tick(x_i);
-        y.tick(y_i);
-        theta.tick(theta_i);
+        x_G_m.tick(x_i);
+        y_G_m.tick(y_i);
+        theta_G_rad.tick(theta_i);
+        augmentX();
+        augmentY();
+        augmentTheta();
     }
 
     void get_derivatives(float w1, float w2, float w3, float &x_i, float &y_i, float &theta_i)
     {
-        float sint = sin(theta.get_val());
-        float cost = cos(theta.get_val());
+        float sint = sin(theta_G_rad.get_val());
+        float cost = cos(theta_G_rad.get_val());
 
         float xl_i = r * (w1*sina2 - w1*sina3 + w2*sina3 - w3*sina2) * den_1;
         float yl_i = r * (w2 - w3 - w1*cosa2 + w1*cosa3 - w2*cosa3 + w3*cosa2) * den_1;

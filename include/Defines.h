@@ -1,6 +1,6 @@
 #pragma once
 
-#define Ts_us                                   6000 /*!< sample time [microseconds]*/
+#define Ts_us                                   7000 /*!< sample time [microseconds]*/
 #define Ts_s                                    ((float)Ts_us * 0.000001)
 
 #define BATTERY_WARNING_VOLTAGE                 11.1    //Volts
@@ -16,6 +16,10 @@
 
 #define MOTORS_POPUGI_TO_XY_MM_S                10.0
 #define MOTORS_POPUGI_TO_W_RAD_S                0.04
+
+#define MOTORS_POPUGI_TO_XY_MM                  10.0
+#define MOTORS_POPUGI_TO_W_RAD                  0.04
+
 #define MOTORS_WHEEL_RAD_MM                     23.5
 #define MOTORS_ROBOT_RAD_MM                     82.0
 
@@ -32,7 +36,7 @@
 #define KICK_TIME                               50      //Miliseconds
 #define KICK_TIMEOUT                            2000     //Miliseconds
 
-#define CONNECTION_TIMEOUT                      100000    //Miliseconds
+#define CONNECTION_TIMEOUT                      20000    //Miliseconds
 
 //////////////////////////
 #define LOG(name, val)  + String("\t") + String(name) + String(": ") + String(val)
