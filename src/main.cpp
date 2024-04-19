@@ -294,48 +294,36 @@ void loop()
         {
             if (channel == controlData.op_addr - 16)
             {
-                switch (controlData.packet_id)
-                {
-                case 0:
                     // Kick
-                    if (controlData.p0.flags & (0x01 << 6))
-                        kick();
+                    // if (controlData.flags & (0x01 << 6))
+                    //     kick();
 
-                    // Auto kick
-                    autoKick = controlData.p0.flags & (0x01<<4);
+                    // // Auto kick
+                    // autoKick = controlData.flags & (0x01<<4);
 
-                    targets.yi_0_G_mm_s = controlData.p0.target_yi * MOTORS_POPUGI_TO_XY_MM_S;
-                    targets.xi_0_G_mm_s = controlData.p0.target_xi * MOTORS_POPUGI_TO_XY_MM_S;
-                    targets.w_0_G_rad_s = controlData.p0.target_w * MOTORS_POPUGI_TO_W_RAD_S;
+                    // targets.yi_0_G_mm_s = controlData.target_yi * MOTORS_POPUGI_TO_XY_MM_S;
+                    // targets.xi_0_G_mm_s = controlData.target_xi * MOTORS_POPUGI_TO_XY_MM_S;
+                    // targets.w_0_G_rad_s = controlData.target_w * MOTORS_POPUGI_TO_W_RAD_S;
                     
-                    controlMode = velocity;
-                    break;
-                case 1:
+                    // controlMode = velocity;
                     // Kick
-                    if (controlData.p0.flags & (0x01 << 6))
+                    if (controlData.flags & (0x01 << 6))
                         kick();
 
                     // Auto kick
-                    autoKick = controlData.p0.flags & (0x01<<4);
+                    autoKick = controlData.flags & (0x01<<4);
                     
                     od.setAugment(
-                        controlData.p1.real_x * MOTORS_POPUGI_TO_XY_MM,
-                        controlData.p1.real_y * MOTORS_POPUGI_TO_XY_MM,
-                        controlData.p1.real_theta * MOTORS_POPUGI_TO_W_RAD
+                        controlData.real_x * MOTORS_POPUGI_TO_XY_MM,
+                        controlData.real_y * MOTORS_POPUGI_TO_XY_MM,
+                        controlData.real_theta * MOTORS_POPUGI_TO_W_RAD
                     );
-                    break;
-                
-                case 2:
-                    targets.x_0_G_mm = controlData.p2.target_x * MOTORS_POPUGI_TO_XY_MM;
-                    targets.y_0_G_mm = controlData.p2.target_y * MOTORS_POPUGI_TO_XY_MM;
-                    targets.theta_0_G_rad = controlData.p2.target_theta * MOTORS_POPUGI_TO_W_RAD;
+
+                    targets.x_0_G_mm = controlData.target_x * MOTORS_POPUGI_TO_XY_MM;
+                    targets.y_0_G_mm = controlData.target_y * MOTORS_POPUGI_TO_XY_MM;
+                    targets.theta_0_G_rad = controlData.target_theta * MOTORS_POPUGI_TO_W_RAD;
                     
                     controlMode = position;
-                    break;
-                
-                default:
-                    break;
-                }
             }
 
             control_loop();

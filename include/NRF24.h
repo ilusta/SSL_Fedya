@@ -7,44 +7,57 @@
 #include "Errors.h"
 #include "Updatable.h"
 
-struct data
-{
-  union
-  {
-    uint8_t raw[6];
-    struct
-    {
-      uint8_t packet_id : 3;
-      uint8_t op_addr : 5;
-    };
-    struct
-    {
-      uint8_t op_addr_byte;
-      int8_t target_xi;
-      int8_t target_yi;
-      int8_t target_w;
-      uint8_t kicker_voltage;
-      uint8_t flags;
-    } p0;
-    struct
-    {
-      uint8_t op_addr_byte;
-      int8_t real_x;
-      int8_t real_y;
-      int8_t real_theta;
-      uint8_t kicker_voltage;
-      uint8_t flags;
-    } p1;
-    struct
-    {
-      uint8_t op_addr_byte;
+// struct data
+// {
+//   union
+//   {
+//     uint8_t raw[6];
+//     struct
+//     {
+//       uint8_t packet_id : 3;
+//       uint8_t op_addr : 5;
+//     };
+//     struct
+//     {
+//       uint8_t op_addr_byte;
+//       int8_t target_xi;
+//       int8_t target_yi;
+//       int8_t target_w;
+//       uint8_t kicker_voltage;
+//       uint8_t flags;
+//     } p0;
+//     struct
+//     {
+//       uint8_t op_addr_byte;
+//       int8_t real_x;
+//       int8_t real_y;
+//       int8_t real_theta;
+//       uint8_t kicker_voltage;
+//       uint8_t flags;
+//     } p1;
+//     struct
+//     {
+//       uint8_t op_addr_byte;
+//       int8_t target_x;
+//       int8_t target_y;
+//       int8_t target_theta;
+//       int8_t target_xi;
+//       int8_t target_yi;
+//     } p2;
+//   };
+// };
+struct data{
+      uint8_t op_addr;
       int8_t target_x;
       int8_t target_y;
+      int8_t real_x;
+      int8_t real_y;
+      int8_t real_theta;      
       int8_t target_theta;
       int8_t target_xi;
       int8_t target_yi;
-    } p2;
-  };
+      uint8_t kicker_voltage;
+      uint8_t flags;
 };
 
 class NRF24 : public Updatable
@@ -91,13 +104,23 @@ public:
     if (this->rad.available())
     {
 
-      byte recv[6];
+      byte recv[8];
       rad.read(&recv, sizeof(recv));
-      for(size_t i = 0; i < 6; i++)
-      {
-        dataPackage.raw[i] = recv[i];
-      }
-
+      // for(size_t i = 0; i < 8; i++)
+      // {
+      //   dataPackage.raw[i] = recv[i];
+      // }
+      dataPackage.op_addr = recv[0];
+      dataPackage.target_x = recv[1];
+      dataPackage.target_y = recv[2];
+      dataPackage.real_x = recv[3];
+      dataPackage.real_y = recv[4];
+      dataPackage.real_theta = recv[5];      
+      dataPackage.target_theta = recv[6];
+      dataPackage.target_xi = recv[7];
+      dataPackage.target_yi = recv[8];
+      dataPackage.kicker_voltage = recv[9];
+      dataPackage.flags = recv[10];
       availableFlag = true;
     }
 
