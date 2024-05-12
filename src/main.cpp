@@ -11,7 +11,7 @@
 #include "NRF24.h"
 #include "Kicker.h"
 #include "IMU.h"
-#include "Odometry.h"
+
 #include "Defines.h"
 
 Button buttonChannelPlus(BUTTON_CHANEL_PLUS);
@@ -91,8 +91,6 @@ Kicker kicker(KICKER, KICK_TIME, KICK_TIMEOUT);
 
 NRF24 nrf(NRF_CHIP_ENABLE, NRF_CHIP_SELECT);
 IMU imu(IMU_CHIP_SELECT);
-
-Odometry od(Ts_s, &motor1, &motor2, &motor3);
 
 Updatable *input[] =
     {
@@ -285,27 +283,6 @@ void loop()
                 speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
             }
 
-            static uint32_t t0 = millis();
-            uint32_t t = millis() - t0;
-            float x = od.getX();
-            float y = od.getY();
-            float theta = od.getTheta();
-
-            // float x0 = 0.2 * ((t / 4000) % 2);
-            // float y0 = 0.2 * (((t + 2000) / 4000) % 2);
-            // float theta0 = 1.5 * sin((millis() - t0)/1000.0);
-            float theta0 = M_PI * (((t + 2000) / 4000) % 2);
-            // float x0 = 0.1*sin((millis() - t0)/1000.0);
-            float x0 = 0;
-            // float y0 = 0.1*sin((millis() - t0)/1000.0 + M_PI_2);
-            float y0 = 0;
-            // float theta0 = 0;
-
-            // speedx_mms = (x0 - x) * 4000.0;
-            // speedy_mms = (y0 - y) * 4000.0;
-            // speedy_mms = 0;
-            speedw_rads = (theta0 - theta) * 8;
-
             speedw_rads = constrain(speedw_rads, -2, 2);
 
             // speedw_rads = 1;
@@ -414,15 +391,14 @@ void loop()
     }
     // Update indicator
     indicator.update();
-    od.tick(imu.getYawRate());
 
     Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
             // // + "channel: " + String(channel)
             // // + "; ball sensor: " + String(ballSensor.getValue()) 
             // // + "/" + String(ballSensor.getAnalogValue())
-            + " x = " + String(od.getX())
-            + " y = " + String(od.getY())
-            + " theta = " + String(od.getTheta())
+            // + " x = " + String(od.getX())
+            // + " y = " + String(od.getY())
+            // + " theta = " + String(od.getTheta())
             // // LOG("m1 ticks", motor1.getTicks())
             // // LOG("m1 angle", motor1.getAngle())
             // LOG("m1 vel", motor1.getSpeed())

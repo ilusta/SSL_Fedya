@@ -55,7 +55,6 @@ public:
     /*!v Обновить мотор. Вызывать раз в период квантования! */
     ERROR_TYPE update() override;
     void interruptHandler();
-    void interruptHandlerB();
     void applyU(float u);
 
 private:
