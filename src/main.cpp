@@ -289,8 +289,8 @@ void loop()
             
             // speedx_mms = 200*sin((millis() - t0)/1000.0);
 
-            static RateLimiter spd_lim_x(Ts_s, 1000);
-            static RateLimiter spd_lim_y(Ts_s, 1000);
+            static RateLimiter spd_lim_x(Ts_s, 2000);
+            static RateLimiter spd_lim_y(Ts_s, 2000);
 
             float limitedx_mms = spd_lim_x.tick(speedx_mms);
             float limitedy_mms = spd_lim_y.tick(speedy_mms);
@@ -308,14 +308,14 @@ void loop()
             static Integrator yawRate(Ts_s);
             static FOD yawFod(Ts_s, 0.4, false);
 
-            // float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
-            float w_feedback_rads = 0;
+            float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+            // float w_feedback_rads = 0;
 
             float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM; // * fabs(yawFod.tick(speed_mms));
 
-            float speed1_mms = - speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
-            float speed2_mms = - speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
-            float speed3_mms = - speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
+            float speed1_mms = speedw_wheel_mms + sin(alpha - 0.33 * M_PI) * speed_mms;
+            float speed2_mms = speedw_wheel_mms + sin(alpha - M_PI) * speed_mms;
+            float speed3_mms = speedw_wheel_mms + sin(alpha + 0.33 * M_PI) * speed_mms;
 
             float constexpr mms2rads = 1.0 / (MOTORS_WHEEL_RAD_MM);
 
