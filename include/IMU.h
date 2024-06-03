@@ -35,6 +35,11 @@ public:
     ERROR_TYPE update() override;
 
     float getYawRate() { return gyr.z; }
+    
+    bool isFlat()
+    {
+        return orientation == MPU9250_FLAT;
+    }
 
 protected:
     MPU9250_WE imu;
@@ -42,6 +47,7 @@ protected:
     xyzFloat gValue;
     xyzFloat gyr;
     xyzFloat magValue;
+    MPU9250_orientation orientation;
     float temp;
     float resultantG;
 };
@@ -53,6 +59,7 @@ ERROR_TYPE IMU::update()
   magValue = imu.getMagValues();
   temp = imu.getTemperature();
   resultantG = imu.getResultantG(gValue);
+  orientation = imu.getOrientation();
 
   return NO_ERRORS;
 }

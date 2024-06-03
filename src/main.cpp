@@ -308,7 +308,7 @@ void loop()
             static Integrator yawRate(Ts_s);
             static FOD yawFod(Ts_s, 0.4, false);
 
-            float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate());
+            float w_feedback_rads = 6*yawRate.tick(speedw_rads - -imu.getYawRate()) * imu.isFlat();
             // float w_feedback_rads = 0;
 
             float speedw_wheel_mms = speedw_rads * MOTORS_ROBOT_RAD_MM + w_feedback_rads * MOTORS_ROBOT_RAD_MM; // * fabs(yawFod.tick(speed_mms));
@@ -402,6 +402,7 @@ void loop()
             // // LOG("m1 ticks", motor1.getTicks())
             // // LOG("m1 angle", motor1.getAngle())
             // LOG("m1 vel", motor1.getSpeed())
+            // LOG("imu", imu.getAnglesStr())
         );
 }
 
