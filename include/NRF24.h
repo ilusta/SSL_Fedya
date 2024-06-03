@@ -24,6 +24,13 @@ private:
   data dataPackage;
   bool availableFlag;
 
+  CHANNEL channel;
+
+  bool checkChannel(uint8_t op_addr)
+  {
+    return channel == op_addr - 16;
+  }
+
 public:
   NRF24(uint8_t ce, uint8_t csn) : rad(ce, csn) {}
 
@@ -58,23 +65,29 @@ public:
 
   ERROR_TYPE update() override
   {
-    if (this->rad.available())
+    while (this->rad.available())
     {
-
       byte recv[6];
       rad.read(&recv, sizeof(recv));
-      dataPackage.op_addr = recv[0];
-      dataPackage.speed_x = recv[1];
-      dataPackage.speed_y = recv[2];
-      dataPackage.speed_w = recv[3];
-      dataPackage.voltage = recv[4];
-      dataPackage.flags = recv[5];
-      // Serial.println(recv[5]);
 
-      availableFlag = true;
+      if(checkChannel(recv[0]))
+      {
+        dataPackage.op_addr = recv[0];
+        dataPackage.speed_x = recv[1];
+        dataPackage.speed_y = recv[2];
+        dataPackage.speed_w = recv[3];
+        dataPackage.voltage = recv[4];
+        dataPackage.flags = recv[5];
+        availableFlag = true;
+      }
     }
 
     return NO_ERRORS;
+  }
+
+  void setChannel(CHANNEL channel)
+  {
+    this->channel = channel;
   }
 
   data getData()

@@ -11,6 +11,7 @@
 #include "NRF24.h"
 #include "Kicker.h"
 #include "IMU.h"
+#include "Types.h"
 
 #include "Defines.h"
 
@@ -121,7 +122,7 @@ bool autoKick = false;
 
 bool initComplete = false;
 
-uint8_t channel = 0;
+CHANNEL channel = 0;
 
 uint32_t lowBatteryTimer = 0;
 uint32_t kickTimer = 0;
@@ -184,6 +185,7 @@ void setup()
     channel = EEPROM.read(0);
     if (channel > 16)
         channel = 1;
+    nrf.setChannel(channel);
     Serial.println("Channel: " + String(channel));
 
     // Print battery voltage
@@ -246,6 +248,7 @@ void loop()
         EEPROM.write(0, channel);
         Serial.println("Channel changed to: " + String(channel));
     }
+    nrf.setChannel(channel);
     indicator.print(channel);
 
     // Check battery voltage
@@ -392,7 +395,8 @@ void loop()
     // Update indicator
     indicator.update();
 
-    Serial.println("[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
+    Serial.println(
+        // "[" + String(time_delta) + "] " + "Voltage: " + String(batteryVoltage.getVoltage()) + "V; " 
             // // + "channel: " + String(channel)
             // // + "; ball sensor: " + String(ballSensor.getValue()) 
             // // + "/" + String(ballSensor.getAnalogValue())

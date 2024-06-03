@@ -1,6 +1,6 @@
 #pragma once
 
-typedef uint16_t ERROR_TYPE;
+#include "Types.h"
 
 #define NO_ERRORS                       0b0000000000000000
 
