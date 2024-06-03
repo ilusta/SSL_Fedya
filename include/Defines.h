@@ -8,6 +8,7 @@
 #define BATTERY_CRITICAL_VOLTAGE_MAXIMUM_TIME   5000    //Miliseconds
 
 #define MOTORS_ROBOT_MAX_SPEED                  1500 /*!< [mm/s] */
+#define MOTORS_ROBOT_MAX_ANG_SPEED_RAD_S        8 /*!< [rad/s] */
 
 #define MOTORS_MAX_U                            12.0 /*!< [V] */
 #define MOTORS_MOVE_U                           2  /*!< [V] */
@@ -15,7 +16,7 @@
 #define MOTORS_KE                               0.185   /*!< [V/rad/s] */
 
 #define MOTORS_POPUGI_TO_XY_MM_S                10.0
-#define MOTORS_POPUGI_TO_W_RAD_S                0.04
+#define MOTORS_POPUGI_TO_W_RAD_S                0.08
 #define MOTORS_WHEEL_RAD_MM                     23.5
 #define MOTORS_ROBOT_RAD_MM                     82.0
 

@@ -286,14 +286,18 @@ void loop()
                 speedw_rads = controlData.speed_w * MOTORS_POPUGI_TO_W_RAD_S;
             }
 
-            speedw_rads = constrain(speedw_rads, -2, 2);
+            speedw_rads = constrain(
+                speedw_rads,
+                -MOTORS_ROBOT_MAX_ANG_SPEED_RAD_S,
+                MOTORS_ROBOT_MAX_ANG_SPEED_RAD_S
+            );
 
             // speedw_rads = 1;
             
             // speedx_mms = 200*sin((millis() - t0)/1000.0);
 
-            static RateLimiter spd_lim_x(Ts_s, 2000);
-            static RateLimiter spd_lim_y(Ts_s, 2000);
+            static RateLimiter spd_lim_x(Ts_s, 8000);
+            static RateLimiter spd_lim_y(Ts_s, 8000);
 
             float limitedx_mms = spd_lim_x.tick(speedx_mms);
             float limitedy_mms = spd_lim_y.tick(speedy_mms);
